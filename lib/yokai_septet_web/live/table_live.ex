@@ -684,29 +684,43 @@ defmodule YokaiSeptetWeb.TableLive do
     winner_team = Map.get(log, :winner_team)
     reason = Map.get(log, :reason, "")
 
-    win_team_data =
+    winner_teams =
       cond do
-        is_integer(winner_team) -> Enum.find(teams, fn {tid, _} -> tid == winner_team end)
-        true -> nil
+        is_integer(winner_team) ->
+          [winner_team]
+
+        winner_team == :split ->
+          log
+          |> Map.get(:points_awarded, %{})
+          |> Map.keys()
+
+        true ->
+          []
       end
+
+    winner_names =
+      teams
+      |> Enum.filter(fn {tid, _} -> tid in winner_teams end)
+      |> Enum.flat_map(fn {_, t} -> t.names end)
 
     title =
       cond do
-        win_team_data && "You" in elem(win_team_data, 1).names -> "勝利"
-        win_team_data -> "敗北"
+        "You" in winner_names -> "勝利"
+        winner_names != [] -> "敗北"
         true -> "終了"
       end
 
     subtitle =
-      case win_team_data do
-        {_, %{names: names}} -> "#{Enum.join(names, " & ")} took the round"
-        _ -> "Round complete"
+      case winner_names do
+        [] -> "Round complete"
+        names -> "#{Enum.join(names, " & ")} took the round"
       end
 
     assigns =
       assign(assigns,
         teams: teams,
         winner_team: winner_team,
+        winner_teams: winner_teams,
         reason: reason,
         title: title,
         subtitle: subtitle
@@ -743,7 +757,7 @@ defmodule YokaiSeptetWeb.TableLive do
 
         <div style={"display: grid; grid-template-columns: repeat(#{length(@teams)}, 1fr); gap: 32px;"}>
           <%= for {tid, t} <- @teams do %>
-            <% is_winner = tid == @winner_team %>
+            <% is_winner = tid in @winner_teams %>
             <div style={
               "padding: 24px;" <>
               " background: #{if is_winner, do: "rgba(212, 175, 55, 0.1)", else: "transparent"};" <>
