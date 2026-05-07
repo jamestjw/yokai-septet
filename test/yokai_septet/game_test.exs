@@ -13,6 +13,24 @@ defmodule YokaiSeptet.GameTest do
     Cards.build_deck() |> Enum.find(&(&1.suit == suit and &1.rank == rank))
   end
 
+  test "boss point values match the player-count scoring table" do
+    expected = %{
+      wind: {0, 0},
+      earth: {0, 1},
+      mist: {1, 1},
+      river: {1, 2},
+      forest: {1, 2},
+      flame: {2, 3},
+      snow: {2, 3}
+    }
+
+    for {suit, {pts_24p, pts_3p}} <- expected do
+      card = boss(suit)
+      assert card.pts_solid == pts_24p
+      assert card.pts_solid + card.pts_outline == pts_3p
+    end
+  end
+
   # ----- Step 1 (greed loss boss redistribution) -----
 
   test "4p greed loss redistributes unplayed bosses to the winning team" do
@@ -45,12 +63,12 @@ defmodule YokaiSeptet.GameTest do
     assert log.winner_team == 1
     assert log.reason =~ "greed"
     # Earth's boss is the trump-suit boss and is discarded; the rest score.
-    # river=1, forest=2, flame=2, snow=3, wind boss = 0 (already in team 0's pile)
-    # Team 1's redistributed bosses: river+forest+flame+snow = 1+2+2+3 = 8.
+    # river=1, forest=1, flame=2, snow=2, wind boss = 0 (already in team 0's pile)
+    # Team 1's redistributed bosses: river+forest+flame+snow = 1+1+2+2 = 6.
     # But Earth boss was on team 0, not redistributed. Team 0 had captured wind+earth+mist
     # — all on the loser, none transferred. Only unplayed (in hands) move.
-    # So team 1 gets river(1) + forest(2) + flame(2) + snow(3) = 8 pts.
-    assert log.points_awarded[1] == 8
+    # So team 1 gets river(1) + forest(1) + flame(2) + snow(2) = 6 pts.
+    assert log.points_awarded[1] == 6
     # Confirm redistributed_bosses contains the four unplayed bosses.
     assert length(log.redistributed_bosses) == 4
   end
@@ -82,9 +100,9 @@ defmodule YokaiSeptet.GameTest do
     assert log.winner_team == 0
 
     # Drop Wind boss (trump suit). Remaining bosses' (solid + outline) pip totals:
-    #   earth: 0+1=1, mist: 1+1=2, river: 1+2=3, forest: 2+2=4, flame: 2+3=5, snow: 3+3=6
-    # Total = 21.
-    assert log.points_awarded[0] == 21
+    #   earth: 0+1=1, mist: 1+0=1, river: 1+1=2, forest: 1+1=2, flame: 2+1=3, snow: 2+1=3
+    # Total = 12.
+    assert log.points_awarded[0] == 12
   end
 
   test "4p scoring counts only pts_solid" do
@@ -107,8 +125,8 @@ defmodule YokaiSeptet.GameTest do
     state = invoke_score_round(state)
     log = hd(state.round_log)
     # 4p ignores outline pips. Drop wind (trump): earth=0, mist=1, river=1,
-    # forest=2, flame=2, snow=3 → 9 points.
-    assert log.points_awarded[0] == 9
+    # forest=1, flame=2, snow=2 → 7 points.
+    assert log.points_awarded[0] == 7
   end
 
   test "3p game tie after greed loss goes to player left of trick loser" do
@@ -263,8 +281,8 @@ defmodule YokaiSeptet.GameTest do
     assert redistributed_suits == [:flame, :forest, :river, :snow]
 
     # Score: drop trump-suit (earth) boss; player 0's earth boss isn't transferred.
-    # Team 1's bosses for scoring: river(1) + forest(2) + flame(2) + snow(3) = 8.
-    assert log.points_awarded[1] == 8
+    # Team 1's bosses for scoring: river(1) + forest(1) + flame(2) + snow(2) = 6.
+    assert log.points_awarded[1] == 6
   end
 
   test "2p revealed straw cards stay in the straw pile and become playable" do

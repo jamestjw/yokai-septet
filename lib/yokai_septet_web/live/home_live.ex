@@ -360,7 +360,7 @@ defmodule YokaiSeptetWeb.HomeLive do
         num: "7",
         title: "Scoring",
         body:
-          "Only the winning team scores. Discard the Boss of the trump suit — it doesn't score. Then count the gold pip on each remaining captured Boss. Wind's Boss has 0 points; Snow's Boss is worth 3.",
+          "Only the winning team scores. Discard the Boss of the trump suit — it doesn't score. Then count the gold pips on each remaining captured Boss. Outline pips count only in 3-player games.",
         visual: :scoring
       },
       %{
@@ -494,9 +494,9 @@ defmodule YokaiSeptetWeb.HomeLive do
       {:earth, 7, 0},
       {:mist, 7, 1},
       {:river, 7, 1},
-      {:forest, 7, 2},
+      {:forest, 7, 1},
       {:flame, 7, 2},
-      {:snow, 7, 3}
+      {:snow, 7, 2}
     ]
 
     assigns = assign(assigns, rows: rows)

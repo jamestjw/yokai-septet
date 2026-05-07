@@ -905,10 +905,10 @@ defmodule YokaiSeptetWeb.TableLive do
           {if @is_victory, do: "Victory", else: "Defeat"}
         </h1>
         <p style="font-size: 16px; color: rgba(244,236,216,0.7); max-width: 480px; margin: 0 auto; font-style: italic; line-height: 1.6;">
-          {Enum.join(@winner_names, " & ")} captured the seven over {@game.round} round{if @game.round !=
-                                                                                             1,
-                                                                                           do: "s",
-                                                                                           else: ""}.
+          {Enum.join(@winner_names, " & ")} reached 7 points over {@game.round} round{if @game.round !=
+                                                                                           1,
+                                                                                         do: "s",
+                                                                                         else: ""}.
         </p>
 
         <hr style="border: none; height: 1px; background: rgba(244,236,216,0.15); margin: 40px auto; width: 200px;" />

@@ -40,7 +40,7 @@ defmodule YokaiSeptet.Cards do
       color: "#7a8b94",
       ranks: [3, 4, 5, 6, 7, 8, 9],
       boss_pts4: 1,
-      boss_pts3_extra: 1,
+      boss_pts3_extra: 0,
       tagline: "Yurei of the shrouded lantern"
     },
     %{
@@ -51,7 +51,7 @@ defmodule YokaiSeptet.Cards do
       color: "#1f3a5f",
       ranks: [4, 5, 6, 7, 8, 9, 10],
       boss_pts4: 1,
-      boss_pts3_extra: 2,
+      boss_pts3_extra: 1,
       tagline: "Kappa of the still pond"
     },
     %{
@@ -61,8 +61,8 @@ defmodule YokaiSeptet.Cards do
       strength: 5,
       color: "#2d5d3a",
       ranks: [5, 6, 7, 8, 9, 10, 11],
-      boss_pts4: 2,
-      boss_pts3_extra: 2,
+      boss_pts4: 1,
+      boss_pts3_extra: 1,
       tagline: "Kodama of the old grove"
     },
     %{
@@ -73,7 +73,7 @@ defmodule YokaiSeptet.Cards do
       color: "#c8483c",
       ranks: [6, 7, 8, 9, 10, 11, 12],
       boss_pts4: 2,
-      boss_pts3_extra: 3,
+      boss_pts3_extra: 1,
       tagline: "Oni of the burning forge"
     },
     %{
@@ -83,8 +83,8 @@ defmodule YokaiSeptet.Cards do
       strength: 7,
       color: "#5d3a6b",
       ranks: [7, 8, 9, 10, 11, 12, 13],
-      boss_pts4: 3,
-      boss_pts3_extra: 3,
+      boss_pts4: 2,
+      boss_pts3_extra: 1,
       tagline: "Yuki-onna of the white peak"
     }
   ]
