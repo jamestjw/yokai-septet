@@ -1,0 +1,376 @@
+/* See the Tailwind configuration guide for advanced usage
+   https://tailwindcss.com/docs/configuration */
+
+@import "tailwindcss" source(none);
+@source "../css";
+@source "../js";
+@source "../../lib/yokai_septet_web";
+
+/* A Tailwind plugin that makes "hero-#{ICON}" classes available.
+   The heroicons installation itself is managed by your mix.exs */
+@plugin "../vendor/heroicons";
+
+/* daisyUI Tailwind Plugin. You can update this file by fetching the latest version with:
+   curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui.js
+   Make sure to look at the daisyUI changelog: https://daisyui.com/docs/changelog/ */
+@plugin "../vendor/daisyui" {
+  themes: false;
+}
+
+/* daisyUI theme plugin. You can update this file by fetching the latest version with:
+  curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui-theme.js
+  We ship with two themes, a light one inspired on Phoenix colors and a dark one inspired
+  on Elixir colors. Build your own at: https://daisyui.com/theme-generator/ */
+@plugin "../vendor/daisyui-theme" {
+  name: "dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: "dark";
+  --color-base-100: oklch(30.33% 0.016 252.42);
+  --color-base-200: oklch(25.26% 0.014 253.1);
+  --color-base-300: oklch(20.15% 0.012 254.09);
+  --color-base-content: oklch(97.807% 0.029 256.847);
+  --color-primary: oklch(58% 0.233 277.117);
+  --color-primary-content: oklch(96% 0.018 272.314);
+  --color-secondary: oklch(58% 0.233 277.117);
+  --color-secondary-content: oklch(96% 0.018 272.314);
+  --color-accent: oklch(60% 0.25 292.717);
+  --color-accent-content: oklch(96% 0.016 293.756);
+  --color-neutral: oklch(37% 0.044 257.287);
+  --color-neutral-content: oklch(98% 0.003 247.858);
+  --color-info: oklch(58% 0.158 241.966);
+  --color-info-content: oklch(97% 0.013 236.62);
+  --color-success: oklch(60% 0.118 184.704);
+  --color-success-content: oklch(98% 0.014 180.72);
+  --color-warning: oklch(66% 0.179 58.318);
+  --color-warning-content: oklch(98% 0.022 95.277);
+  --color-error: oklch(58% 0.253 17.585);
+  --color-error-content: oklch(96% 0.015 12.422);
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.21875rem;
+  --size-field: 0.21875rem;
+  --border: 1.5px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@plugin "../vendor/daisyui-theme" {
+  name: "light";
+  default: true;
+  prefersdark: false;
+  color-scheme: "light";
+  --color-base-100: oklch(98% 0 0);
+  --color-base-200: oklch(96% 0.001 286.375);
+  --color-base-300: oklch(92% 0.004 286.32);
+  --color-base-content: oklch(21% 0.006 285.885);
+  --color-primary: oklch(70% 0.213 47.604);
+  --color-primary-content: oklch(98% 0.016 73.684);
+  --color-secondary: oklch(55% 0.027 264.364);
+  --color-secondary-content: oklch(98% 0.002 247.839);
+  --color-accent: oklch(0% 0 0);
+  --color-accent-content: oklch(100% 0 0);
+  --color-neutral: oklch(44% 0.017 285.786);
+  --color-neutral-content: oklch(98% 0 0);
+  --color-info: oklch(62% 0.214 259.815);
+  --color-info-content: oklch(97% 0.014 254.604);
+  --color-success: oklch(70% 0.14 182.503);
+  --color-success-content: oklch(98% 0.014 180.72);
+  --color-warning: oklch(66% 0.179 58.318);
+  --color-warning-content: oklch(98% 0.022 95.277);
+  --color-error: oklch(58% 0.253 17.585);
+  --color-error-content: oklch(96% 0.015 12.422);
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.21875rem;
+  --size-field: 0.21875rem;
+  --border: 1.5px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* Add variants based on LiveView classes */
+@custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
+@custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
+@custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
+
+/* Use the data attribute for dark mode  */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* Make LiveView wrapper divs transparent for layout */
+[data-phx-session], [data-phx-teleported-src] { display: contents }
+
+/* This file is for your main application CSS */
+/* Yokai Septet — visual system
+ * Aesthetic: washi paper, sumi-e ink, traditional Japanese palette
+ *   Background: aged washi cream
+ *   Ink: deep sumi black
+ *   Accents: vermilion (shu-iro), indigo (ai), moss (matsuba), ochre (kihada)
+ */
+
+:root {
+  /* Surfaces */
+  --washi: #f4ecd8;
+  --washi-warm: #ede2c8;
+  --washi-deep: #e0d3b3;
+  --washi-shadow: #c9b88f;
+
+  /* Ink */
+  --sumi: #1a1410;
+  --sumi-soft: #3a2f1f;
+  --sumi-mute: #6b5a42;
+  --sumi-faint: #8b7a5f;
+
+  /* Suit colors — traditional Japanese pigments */
+  --shu: #c8483c;       /* vermilion — Tengu (sky/wind) */
+  --ai: #1f3a5f;        /* indigo — Kappa (water) */
+  --matsuba: #2d5d3a;   /* pine green — Kodama (forest) */
+  --kihada: #b8893a;    /* ochre — Kitsune (earth/fox) */
+  --murasaki: #5d3a6b;  /* purple — Oni (fire/demon) */
+  --asagi: #4a8a8a;     /* pale teal — Yurei (spirit) */
+  --kuro: #2a2420;      /* near-black — Nure-onna (night) */
+
+  /* UI */
+  --gold: #b8893a;
+  --gold-bright: #d4af37;
+  --line: rgba(26, 20, 16, 0.18);
+  --line-strong: rgba(26, 20, 16, 0.42);
+  --shadow-sm: 0 1px 2px rgba(26, 20, 16, 0.08), 0 2px 6px rgba(26, 20, 16, 0.06);
+  --shadow-md: 0 2px 8px rgba(26, 20, 16, 0.10), 0 8px 24px rgba(26, 20, 16, 0.10);
+  --shadow-lg: 0 8px 16px rgba(26, 20, 16, 0.12), 0 24px 60px rgba(26, 20, 16, 0.18);
+
+  --serif: "Shippori Mincho", "Noto Serif JP", "Cormorant Garamond", "Hiragino Mincho ProN", serif;
+  --sans: "Zen Kaku Gothic New", "Noto Sans JP", -apple-system, sans-serif;
+  --kanji: "Shippori Mincho", "Noto Serif JP", serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--serif);
+  color: var(--sumi);
+  background: var(--washi);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Washi paper texture — layered noise + subtle fibers */
+.washi-bg {
+  background-color: var(--washi);
+  background-image:
+    radial-gradient(ellipse 800px 400px at 20% 10%, rgba(184, 137, 58, 0.08), transparent 70%),
+    radial-gradient(ellipse 600px 300px at 80% 90%, rgba(45, 93, 58, 0.06), transparent 70%),
+    radial-gradient(circle at 30% 70%, rgba(200, 72, 60, 0.04), transparent 50%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 0.4  0 0 0 0 0.3  0 0 0 0 0.15  0 0 0 0.06 0'/></filter><rect width='240' height='240' filter='url(%23n)'/></svg>");
+  background-size: auto, auto, auto, 240px 240px;
+}
+
+.washi-card {
+  background-color: var(--washi-warm);
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' seed='5'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.25  0 0 0 0 0.1  0 0 0 0.08 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  background-size: 200px 200px;
+}
+
+.tatami {
+  background-color: #2a3a2a;
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,0.15), transparent 30%, rgba(0,0,0,0.18)),
+    radial-gradient(ellipse 1200px 700px at 50% 50%, rgba(212, 175, 55, 0.06), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(20, 30, 20, 0.0) 0 38px, rgba(20, 30, 20, 0.25) 38px 40px),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 0.2  0 0 0 0 0.3  0 0 0 0 0.18  0 0 0 0.12 0'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
+  background-size: auto, auto, auto, 180px 180px;
+}
+
+/* Type scale */
+.kanji { font-family: var(--kanji); font-feature-settings: "palt"; }
+.eyebrow { font-family: var(--sans); text-transform: uppercase; letter-spacing: 0.32em; font-size: 11px; font-weight: 500; color: var(--sumi-mute); }
+.display { font-family: var(--kanji); font-weight: 500; letter-spacing: 0.02em; }
+
+/* Ink stamp — vermilion red square seal */
+.hanko {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px; height: 44px;
+  background: var(--shu);
+  color: var(--washi);
+  font-family: var(--kanji);
+  font-size: 22px;
+  font-weight: 600;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.1) inset, 1px 1px 0 rgba(0,0,0,0.15);
+  letter-spacing: 0;
+  position: relative;
+}
+.hanko::after {
+  /* slightly imperfect ink edge */
+  content: "";
+  position: absolute; inset: 0;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44'><filter id='n'><feTurbulence baseFrequency='2' numOctaves='2' seed='2'/><feColorMatrix values='0 0 0 0 0.78  0 0 0 0 0.28  0 0 0 0 0.24  0 0 0 0.4 0'/></filter><rect width='44' height='44' filter='url(%23n)' opacity='0.5'/></svg>");
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  font-family: var(--serif);
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  padding: 12px 22px;
+  background: var(--sumi);
+  color: var(--washi);
+  border: none;
+  cursor: pointer;
+  transition: transform 120ms ease, background 160ms ease, box-shadow 160ms ease;
+  box-shadow: var(--shadow-sm);
+  border-radius: 2px;
+}
+.btn:hover { background: var(--sumi-soft); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn:active { transform: translateY(0); }
+.btn-ghost {
+  background: transparent;
+  color: var(--sumi);
+  border: 1px solid var(--line-strong);
+}
+.btn-ghost:hover { background: rgba(26,20,16,0.04); }
+.btn-shu {
+  background: var(--shu);
+}
+.btn-shu:hover { background: #b53d33; }
+
+/* Card frame — common */
+.yokai-card {
+  position: relative;
+  background: var(--washi-warm);
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' seed='5'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.25  0 0 0 0 0.1  0 0 0 0.08 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  background-size: 200px 200px;
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px rgba(26,20,16,0.12),
+    0 1px 2px rgba(26,20,16,0.10),
+    0 6px 16px rgba(26,20,16,0.18);
+  user-select: none;
+}
+.yokai-card .frame {
+  position: absolute;
+  inset: 5px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+/* Card back */
+.yokai-back {
+  position: relative;
+  background: var(--kuro);
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.18), transparent 60%),
+    repeating-linear-gradient(45deg, rgba(212,175,55,0.03) 0 6px, transparent 6px 12px),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><filter id='n'><feTurbulence baseFrequency='2' seed='4'/><feColorMatrix values='0 0 0 0 0.05  0 0 0 0 0.05  0 0 0 0 0.05  0 0 0 0.18 0'/></filter><rect width='100' height='100' filter='url(%23n)'/></svg>");
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,0.22),
+    0 1px 2px rgba(0,0,0,0.4),
+    0 6px 16px rgba(0,0,0,0.35);
+  color: var(--gold-bright);
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Trick area card placement */
+.trick-slot {
+  position: absolute;
+  width: 80px; height: 112px;
+  border: 1px dashed rgba(244, 236, 216, 0.18);
+  border-radius: 6px;
+}
+
+/* Subtle hairline divider */
+.hairline {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
+  border: none;
+}
+.hairline-vert {
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--line-strong), transparent);
+}
+
+/* Brush stroke header underline */
+.brush-underline {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 8px;
+}
+.brush-underline::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 4px;
+  background: var(--sumi);
+  border-radius: 4px;
+  clip-path: polygon(0% 40%, 4% 20%, 12% 60%, 24% 30%, 38% 70%, 55% 25%, 72% 65%, 88% 35%, 100% 50%, 100% 100%, 0% 100%);
+  opacity: 0.85;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn 280ms ease both; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.slide-up { animation: slideUp 380ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes drawCard {
+  from { opacity: 0; transform: translateY(60px) rotate(-8deg) scale(0.85); }
+  to { opacity: 1; transform: translateY(0) rotate(var(--rot, 0deg)) scale(1); }
+}
+.draw-in { animation: drawCard 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes inkFlow {
+  from { stroke-dashoffset: 1000; opacity: 0; }
+  to { stroke-dashoffset: 0; opacity: 1; }
+}
+
+/* Suits color helpers */
+.c-shu { color: var(--shu); }
+.c-ai { color: var(--ai); }
+.c-matsuba { color: var(--matsuba); }
+.c-kihada { color: var(--kihada); }
+.c-murasaki { color: var(--murasaki); }
+.c-asagi { color: var(--asagi); }
+.c-kuro { color: var(--kuro); }
+
+.bg-shu { background-color: var(--shu); }
+.bg-ai { background-color: var(--ai); }
+.bg-matsuba { background-color: var(--matsuba); }
+.bg-kihada { background-color: var(--kihada); }
+.bg-murasaki { background-color: var(--murasaki); }
+.bg-asagi { background-color: var(--asagi); }
+.bg-kuro { background-color: var(--kuro); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(26,20,16,0.18); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(26,20,16,0.32); }
+
+/* Pulse animation for current-player indicator (was inline in original index.html) */
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
