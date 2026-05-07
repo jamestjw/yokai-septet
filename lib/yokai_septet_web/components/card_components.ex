@@ -283,7 +283,7 @@ defmodule YokaiSeptetWeb.CardComponents do
   defp yokai_card_face(assigns) do
     s = Cards.suit(assigns.suit)
     height = assigns.width * 1.42
-    is_boss = assigns.rank == List.last(s.ranks)
+    is_boss = assigns.rank == 7
     corner_size = assigns.width * 0.18
     mark_size = assigns.width * 0.58
     label = if assigns.is_a, do: "A", else: Cards.rank_label(assigns.rank)
