@@ -53,8 +53,9 @@ defmodule YokaiSeptet.Game do
       lead_player_idx: nil,
       # 2p: dealer alternates each round; dealer leads the first trick.
       dealer_idx: 0,
-      # 2p straw pile: list (per player) of 7 slots
-      #   %{face_down: card | nil, face_up: card | nil}
+      # 2p straw pile, per player:
+      #   %{downs: [%{card: card | nil, revealed?: boolean}], ups: [card | nil]}
+      # A face-up card at index i covers face-down cards i and i + 1.
       # nil for non-2p modes.
       straw: nil,
       # 2p: discarded card per player (set aside; not playable).
@@ -181,14 +182,12 @@ defmodule YokaiSeptet.Game do
     }
   end
 
-  # 7 slots; first 6 carry a face-up card on top, slot 6 is uncovered.
+  # 7 face-down cards with 6 face-up cards bridging adjacent pairs.
   defp build_straw(face_downs, face_ups) do
-    for i <- 0..6 do
-      %{
-        face_down: Enum.at(face_downs, i),
-        face_up: Enum.at(face_ups, i)
-      }
-    end
+    %{
+      downs: Enum.map(face_downs, &%{card: &1, revealed?: false}),
+      ups: face_ups
+    }
   end
 
   # =========================================================================
@@ -299,13 +298,22 @@ defmodule YokaiSeptet.Game do
     %{state | human_discard_id: card_id}
   end
 
-  @doc "Toggle whether to swap a given face-up straw slot in the human's pile."
-  def toggle_swap(state, slot_index) do
+  @doc "Choose which covered card a face-up Boss should swap with during 2p setup."
+  def set_swap_choice(state, up_index, side) when side in [:left, :right] do
+    decision = %{side: side, keep: nil}
+    %{state | human_swap_decisions: Map.put(state.human_swap_decisions, up_index, decision)}
+  end
+
+  def clear_swap_choice(state, up_index) do
+    %{state | human_swap_decisions: Map.delete(state.human_swap_decisions, up_index)}
+  end
+
+  @doc "Choose which Boss remains face-up when a 2p setup swap reveals a Boss under a Boss."
+  def set_swap_keep(state, up_index, keep) when keep in [:up, :down] do
     decisions =
-      case Map.get(state.human_swap_decisions, slot_index) do
-        :swap -> Map.delete(state.human_swap_decisions, slot_index)
-        _ -> Map.put(state.human_swap_decisions, slot_index, :swap)
-      end
+      Map.update(state.human_swap_decisions, up_index, %{side: :left, keep: keep}, fn decision ->
+        Map.put(decision, :keep, keep)
+      end)
 
     %{state | human_swap_decisions: decisions}
   end
@@ -327,9 +335,20 @@ defmodule YokaiSeptet.Game do
         cond do
           discard == nil -> state
           discard.is_boss -> state
+          unresolved_boss_swap?(state, h_idx) -> state
           true -> do_confirm_setup(state, h_idx, discard)
         end
     end
+  end
+
+  defp unresolved_boss_swap?(state, player_idx) do
+    straw = Enum.at(state.straw, player_idx)
+
+    Enum.any?(state.human_swap_decisions, fn {up_index, decision} ->
+      up = Enum.at(straw.ups, up_index)
+      down = swap_down_card(straw, up_index, decision.side)
+      up && down && up.is_boss && down.is_boss && is_nil(decision.keep)
+    end)
   end
 
   defp do_confirm_setup(state, h_idx, human_discard) do
@@ -337,9 +356,7 @@ defmodule YokaiSeptet.Game do
     new_hand_h = Enum.reject(Enum.at(state.hands, h_idx), &(&1.id == human_discard.id))
 
     # Apply human swaps.
-    new_straw_h =
-      Enum.at(state.straw, h_idx)
-      |> apply_swaps(state.human_swap_decisions)
+    new_straw_h = apply_swaps(Enum.at(state.straw, h_idx), state.human_swap_decisions)
 
     # AI: discard lowest non-boss; never swap.
     ai_idx = if h_idx == 0, do: 1, else: 0
@@ -377,18 +394,39 @@ defmodule YokaiSeptet.Game do
     }
   end
 
-  defp apply_swaps(slots, decisions) do
-    slots
-    |> Enum.with_index()
-    |> Enum.map(fn {slot, i} ->
+  defp apply_swaps(straw, decisions) do
+    Enum.reduce(decisions, straw, fn {up_index, decision}, acc ->
+      up = Enum.at(acc.ups, up_index)
+      down_index = swap_down_index(up_index, decision.side)
+      down = Enum.at(acc.downs, down_index)
+
       cond do
-        Map.get(decisions, i) != :swap -> slot
-        slot.face_up == nil -> slot
-        slot.face_down == nil -> slot
-        true -> %{slot | face_up: slot.face_down, face_down: slot.face_up}
+        up == nil ->
+          acc
+
+        down == nil or down.card == nil ->
+          acc
+
+        down.card.is_boss and decision.keep == :up ->
+          acc
+
+        true ->
+          new_ups = List.replace_at(acc.ups, up_index, down.card)
+          new_downs = List.replace_at(acc.downs, down_index, %{down | card: up, revealed?: false})
+          %{acc | ups: new_ups, downs: new_downs}
       end
     end)
   end
+
+  defp swap_down_card(straw, up_index, side) do
+    case Enum.at(straw.downs, swap_down_index(up_index, side)) do
+      %{card: card} -> card
+      _ -> nil
+    end
+  end
+
+  defp swap_down_index(up_index, :left), do: up_index
+  defp swap_down_index(up_index, :right), do: up_index + 1
 
   # 2p: dealer leads round 1; in subsequent rounds the dealer alternates
   # (already flipped in next_round/1 before start_round/1 runs).
@@ -414,8 +452,7 @@ defmodule YokaiSeptet.Game do
   @doc """
   Apply a card play. Returns `{:continue | :trick_complete | :invalid, state}`.
 
-  In 2p, `card_id` may identify a face-up straw card; that slot's `face_up`
-  is then cleared and the slot becomes "uncoverable" until the trick ends.
+  In 2p, `card_id` may identify a face-up or revealed face-down straw card.
   """
   def play_card(state, player_idx, card_id) do
     cond do
@@ -475,12 +512,21 @@ defmodule YokaiSeptet.Game do
 
       straws ->
         face_ups =
-          Enum.at(straws, player_idx)
-          |> Enum.map(& &1.face_up)
-          |> Enum.reject(&is_nil/1)
+          straw_cards(Enum.at(straws, player_idx))
 
         hand ++ face_ups
     end
+  end
+
+  defp straw_cards(straw) do
+    face_ups = Enum.reject(straw.ups, &is_nil/1)
+
+    revealed_downs =
+      straw.downs
+      |> Enum.filter(&(&1.revealed? and &1.card != nil))
+      |> Enum.map(& &1.card)
+
+    face_ups ++ revealed_downs
   end
 
   defp remove_played_card(state, player_idx, card) do
@@ -490,20 +536,31 @@ defmodule YokaiSeptet.Game do
       new_hand = Enum.reject(hand, &(&1.id == card.id))
       %{state | hands: List.replace_at(state.hands, player_idx, new_hand)}
     else
-      # Must be a face-up straw card.
+      # Must be a playable straw card.
       straws = state.straw
-      slots = Enum.at(straws, player_idx)
+      straw = Enum.at(straws, player_idx)
 
-      new_slots =
-        Enum.map(slots, fn slot ->
-          if slot.face_up && slot.face_up.id == card.id do
-            %{slot | face_up: nil}
-          else
-            slot
-          end
-        end)
+      new_straw = remove_straw_card(straw, card)
 
-      %{state | straw: List.replace_at(straws, player_idx, new_slots)}
+      %{state | straw: List.replace_at(straws, player_idx, new_straw)}
+    end
+  end
+
+  defp remove_straw_card(straw, card) do
+    up_index = Enum.find_index(straw.ups, &(&1 && &1.id == card.id))
+
+    if up_index do
+      %{straw | ups: List.replace_at(straw.ups, up_index, nil)}
+    else
+      down_index =
+        Enum.find_index(straw.downs, &((&1.revealed? and &1.card) && &1.card.id == card.id))
+
+      if down_index do
+        down = Enum.at(straw.downs, down_index)
+        %{straw | downs: List.replace_at(straw.downs, down_index, %{down | card: nil})}
+      else
+        straw
+      end
     end
   end
 
@@ -551,35 +608,40 @@ defmodule YokaiSeptet.Game do
     end
   end
 
-  # 2p: after each trick, any straw slot whose face_up was just played
-  # promotes its face_down up into the actual hand.
+  # 2p: after each trick, reveal face-down cards that are no longer covered by
+  # adjacent face-up straw cards. Revealed cards stay in the straw pile.
   defp reveal_uncovered_straws(%{straw: nil} = state), do: state
 
   defp reveal_uncovered_straws(state) do
-    {new_straw, new_hands} =
-      Enum.zip(state.straw, state.hands)
-      |> Enum.map(fn {slots, hand} ->
-        Enum.reduce(slots, {[], hand}, fn slot, {slot_acc, hand_acc} ->
-          case slot do
-            %{face_up: nil, face_down: card} when not is_nil(card) ->
-              {[%{face_up: nil, face_down: nil} | slot_acc], hand_acc ++ [card]}
+    %{state | straw: Enum.map(state.straw, &reveal_straw/1)}
+  end
 
-            _ ->
-              {[slot | slot_acc], hand_acc}
-          end
-        end)
-        |> then(fn {slots_rev, h} -> {Enum.reverse(slots_rev), Cards.sort_hand(h)} end)
+  defp reveal_straw(straw) do
+    downs =
+      straw.downs
+      |> Enum.with_index()
+      |> Enum.map(fn {down, i} ->
+        if down.card && uncovered?(straw, i) do
+          %{down | revealed?: true}
+        else
+          down
+        end
       end)
-      |> Enum.unzip()
 
-    %{state | straw: new_straw, hands: new_hands}
+    %{straw | downs: downs}
+  end
+
+  defp uncovered?(straw, down_index) do
+    left_clear? = down_index == 0 or Enum.at(straw.ups, down_index - 1) == nil
+    right_clear? = down_index == 6 or Enum.at(straw.ups, down_index) == nil
+    left_clear? and right_clear?
   end
 
   defp straw_empty?(%{straw: nil}), do: true
 
   defp straw_empty?(%{straw: straws}) do
-    Enum.all?(straws, fn slots ->
-      Enum.all?(slots, &(&1.face_up == nil and &1.face_down == nil))
+    Enum.all?(straws, fn straw ->
+      Enum.all?(straw.ups, &is_nil/1) and Enum.all?(straw.downs, &(&1.card == nil))
     end)
   end
 
@@ -767,9 +829,9 @@ defmodule YokaiSeptet.Game do
           []
 
         straws ->
-          straws
-          |> List.flatten()
-          |> Enum.flat_map(fn slot -> [slot.face_up, slot.face_down] end)
+          Enum.flat_map(straws, fn straw ->
+            straw.ups ++ Enum.map(straw.downs, & &1.card)
+          end)
           |> Enum.reject(&is_nil/1)
           |> Enum.filter(& &1.is_boss)
       end

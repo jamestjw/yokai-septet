@@ -64,10 +64,22 @@ defmodule YokaiSeptetWeb.TableLive do
     {:noreply, assign(socket, game: Game.set_pass_discard(socket.assigns.game, card_id))}
   end
 
-  # 2p: human toggles a face-up boss swap on a given straw slot.
-  def handle_event("toggle_swap", %{"slot" => slot}, socket) do
-    slot = String.to_integer(slot)
-    {:noreply, assign(socket, game: Game.toggle_swap(socket.assigns.game, slot))}
+  # 2p: human chooses a covered card under a face-up Boss to swap with.
+  def handle_event("set_swap", %{"up" => up, "side" => side}, socket) do
+    up = String.to_integer(up)
+    side = String.to_existing_atom(side)
+    {:noreply, assign(socket, game: Game.set_swap_choice(socket.assigns.game, up, side))}
+  end
+
+  def handle_event("clear_swap", %{"up" => up}, socket) do
+    up = String.to_integer(up)
+    {:noreply, assign(socket, game: Game.clear_swap_choice(socket.assigns.game, up))}
+  end
+
+  def handle_event("set_swap_keep", %{"up" => up, "keep" => keep}, socket) do
+    up = String.to_integer(up)
+    keep = String.to_existing_atom(keep)
+    {:noreply, assign(socket, game: Game.set_swap_keep(socket.assigns.game, up, keep))}
   end
 
   def handle_event("confirm_setup", _params, socket) do
@@ -302,7 +314,7 @@ defmodule YokaiSeptetWeb.TableLive do
             />
           <% end %>
           <.player_hand
-            hand={@my_effective}
+            hand={if @game.mode == "2p", do: @my_hand, else: @my_effective}
             legal={@my_legal}
             is_my_turn={@is_my_turn}
             player_name={Enum.at(@game.players, @h_idx).name}
@@ -944,63 +956,116 @@ defmodule YokaiSeptetWeb.TableLive do
   # 2p straw-pile UI
   # =====================================================================
 
-  attr :slots, :list, required: true
+  attr :slots, :map, required: true
   attr :legal, :list, required: true
   attr :is_my_turn, :boolean, required: true
   attr :owner, :string, required: true
 
   defp straw_row(assigns) do
+    down_width = if assigns.owner == "self", do: 54, else: 36
+    up_width = if assigns.owner == "self", do: 48, else: 32
+    gap = if assigns.owner == "self", do: 18, else: 10
+    height = if assigns.owner == "self", do: 108, else: 72
+    total_width = down_width * 7 + gap * 6
+
+    assigns =
+      assign(assigns,
+        down_width: down_width,
+        up_width: up_width,
+        gap: gap,
+        height: height,
+        total_width: total_width
+      )
+
     ~H"""
     <div style={
-      "display: flex; gap: 6px; justify-content: center; align-items: flex-end;" <>
+      "display: flex; justify-content: center;" <>
       " padding: " <> if(@owner == "self", do: "8px 32px 4px", else: "6px 0 0") <> ";"
     }>
-      <%= for {slot, i} <- Enum.with_index(@slots) do %>
-        <div
-          style="display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 60px;"
-          data-slot={i}
-        >
-          <%= cond do %>
-            <% slot.face_up != nil -> %>
-              <% playable = @owner == "self" and slot.face_up.id in @legal and @is_my_turn %>
-              <div style={
-                "transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);" <>
-                " cursor: " <> if(playable, do: "pointer", else: "default") <> ";"
-              }>
+      <div style={"position: relative; width: #{@total_width}px; height: #{@height}px;"}>
+        <%= for {down, i} <- Enum.with_index(@slots.downs) do %>
+          <% left = i * (@down_width + @gap) %>
+          <% playable =
+            down.card != nil and down.revealed? and @owner == "self" and down.card.id in @legal and
+              @is_my_turn %>
+          <div style={"position: absolute; left: #{left}px; bottom: 0; z-index: #{i};"} data-down={i}>
+            <%= cond do %>
+              <% down.card == nil -> %>
+                <div style={"width: #{@down_width}px; height: #{@down_width * 1.42}px; border: 1px dashed rgba(244,236,216,0.18); border-radius: 6px;"}>
+                </div>
+              <% down.revealed? -> %>
                 <.yokai_card
-                  suit={slot.face_up.suit}
-                  rank={slot.face_up.rank}
-                  is_a={slot.face_up.is_a}
-                  width={if @owner == "self", do: 54, else: 36}
+                  suit={down.card.suit}
+                  rank={down.card.rank}
+                  is_a={down.card.is_a}
+                  width={@down_width}
                   playable={playable}
                   dimmed={@owner == "self" and not playable and @is_my_turn}
                   phx_click={if playable, do: "play_card"}
-                  phx_value_id={slot.face_up.id}
+                  phx_value_id={down.card.id}
                 />
-              </div>
-            <% slot.face_down != nil -> %>
-              <div
-                class="yokai-back"
-                style={
-                "width: " <> if(@owner == "self", do: "54px", else: "36px") <>
-                "; height: " <> if(@owner == "self", do: "76px", else: "50px") <>
-                "; display: flex; align-items: center; justify-content: center;"
-              }
-              >
-                <span style="font-family: var(--kanji); font-size: 12px; opacity: 0.7;">七</span>
-              </div>
-            <% true -> %>
-              <div style={
-                "width: " <> if(@owner == "self", do: "54px", else: "36px") <>
-                "; height: " <> if(@owner == "self", do: "76px", else: "50px") <>
-                "; border: 1px dashed rgba(244,236,216,0.18); border-radius: 6px;"
-              }>
-              </div>
-          <% end %>
-        </div>
-      <% end %>
+              <% true -> %>
+                <div
+                  class="yokai-back"
+                  style={"width: #{@down_width}px; height: #{@down_width * 1.42}px; display: flex; align-items: center; justify-content: center;"}
+                >
+                  <span style="font-family: var(--kanji); font-size: 12px; opacity: 0.7;">七</span>
+                </div>
+            <% end %>
+          </div>
+        <% end %>
+
+        <%= for {up, i} <- Enum.with_index(@slots.ups) do %>
+          <% left = i * (@down_width + @gap) + @down_width + @gap / 2 - @up_width / 2 %>
+          <% playable = up != nil and @owner == "self" and up.id in @legal and @is_my_turn %>
+          <div
+            style={"position: absolute; left: #{left}px; top: 0; z-index: #{20 + i}; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.45));"}
+            data-up={i}
+          >
+            <%= if up do %>
+              <.yokai_card
+                suit={up.suit}
+                rank={up.rank}
+                is_a={up.is_a}
+                width={@up_width}
+                playable={playable}
+                dimmed={@owner == "self" and not playable and @is_my_turn}
+                phx_click={if playable, do: "play_card"}
+                phx_value_id={up.id}
+              />
+            <% end %>
+          </div>
+        <% end %>
+      </div>
     </div>
     """
+  end
+
+  defp swap_down_card(straw, up_index, side) do
+    down_index = if side == :left, do: up_index, else: up_index + 1
+
+    case Enum.at(straw.downs, down_index) do
+      %{card: card} -> card
+      _ -> nil
+    end
+  end
+
+  defp swap_button_style(decision, side) do
+    selected? = decision && decision.side == side
+
+    "background: #{if selected?, do: "var(--gold-bright)", else: "rgba(244,236,216,0.06)"};" <>
+      " border: 1px solid #{if selected?, do: "var(--gold-bright)", else: "rgba(244,236,216,0.2)"};" <>
+      " color: #{if selected?, do: "var(--sumi)", else: "rgba(244,236,216,0.75)"};" <>
+      " padding: 4px 8px; font-size: 10px; cursor: pointer; font-family: var(--sans); letter-spacing: 0.08em; text-transform: uppercase;"
+  end
+
+  defp keep_button_style(decision, keep) do
+    selected? = decision && decision.keep == keep
+
+    "background: #{if selected?, do: "var(--gold-bright)", else: "transparent"};" <>
+      " border: 1px solid #{if selected?, do: "var(--gold-bright)", else: "rgba(244,236,216,0.2)"};" <>
+      " color: #{if selected?, do: "var(--sumi)", else: "rgba(244,236,216,0.75)"};" <>
+      " padding: 3px 7px; font-size: 10px; cursor: pointer;"
   end
 
   attr :game, :map, required: true
@@ -1011,12 +1076,19 @@ defmodule YokaiSeptetWeb.TableLive do
     g = assigns.game
     discard_id = g.human_discard_id
     swaps = g.human_swap_decisions
-    slots = Enum.at(g.straw, assigns.h_idx)
+    straw = Enum.at(g.straw, assigns.h_idx)
 
     boss_slots =
-      Enum.with_index(slots) |> Enum.filter(fn {s, _} -> s.face_up && s.face_up.is_boss end)
+      Enum.with_index(straw.ups) |> Enum.filter(fn {card, _} -> card && card.is_boss end)
 
-    can_confirm = discard_id != nil
+    unresolved? =
+      Enum.any?(swaps, fn {up_index, decision} ->
+        up = Enum.at(straw.ups, up_index)
+        down = swap_down_card(straw, up_index, decision.side)
+        up && down && up.is_boss && down.is_boss && is_nil(decision.keep)
+      end)
+
+    can_confirm = discard_id != nil and not unresolved?
 
     assigns =
       assign(assigns,
@@ -1024,7 +1096,8 @@ defmodule YokaiSeptetWeb.TableLive do
         swaps: swaps,
         boss_slots: boss_slots,
         can_confirm: can_confirm,
-        slots: slots
+        slots: straw,
+        unresolved?: unresolved?
       )
 
     ~H"""
@@ -1034,11 +1107,11 @@ defmodule YokaiSeptetWeb.TableLive do
           <div class="eyebrow" style="color: rgba(244,236,216,0.55);">Setup phase · 2-player</div>
           <div style="font-size: 15px; margin-top: 4px;">
             Pick one non-Boss card to <span style="color: var(--shu); font-family: var(--kanji);">discard</span>,
-            then optionally swap any face-up Boss in your straw with the card beneath it (blind).
+            then optionally swap any face-up Boss with the left or right card beneath it.
           </div>
           <%= if @boss_slots != [] do %>
             <div style="margin-top: 8px; font-size: 12px; color: rgba(244,236,216,0.55); font-family: var(--sans); letter-spacing: 0.08em;">
-              Click a face-up Boss below to toggle swap.
+              Choose left or right beneath a Boss. If both cards are Bosses, choose which one remains face-up.
             </div>
           <% end %>
         </div>
@@ -1052,27 +1125,69 @@ defmodule YokaiSeptetWeb.TableLive do
         </button>
       </div>
 
+      <%= if @unresolved? do %>
+        <div style="margin: 0 auto 12px; max-width: 560px; padding: 10px 14px; border: 1px solid var(--gold-bright); background: rgba(212,175,55,0.12); color: var(--gold-bright); font-size: 12px; font-family: var(--sans); letter-spacing: 0.08em; text-transform: uppercase;">
+          Boss under Boss: choose which Boss stays face-up before confirming.
+        </div>
+      <% end %>
+
       <%= if @boss_slots != [] do %>
-        <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 12px;">
-          <%= for {slot, i} <- @boss_slots do %>
-            <% will_swap = Map.get(@swaps, i) == :swap %>
-            <button
-              phx-click="toggle_swap"
-              phx-value-slot={i}
-              style={
-                "background: rgba(26,20,16,0.6); border: 1px solid " <>
-                if(will_swap, do: "var(--gold-bright)", else: "rgba(244,236,216,0.2)") <>
-                "; padding: 6px 10px; border-radius: 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;"
-              }
-            >
-              <.yokai_card suit={slot.face_up.suit} rank={slot.face_up.rank} width={48} />
-              <span style={
-                "font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; font-family: var(--sans);" <>
-                " color: " <> if(will_swap, do: "var(--gold-bright)", else: "rgba(244,236,216,0.55)") <> ";"
-              }>
-                {if will_swap, do: "Swap", else: "Keep"}
-              </span>
-            </button>
+        <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap;">
+          <%= for {card, i} <- @boss_slots do %>
+            <% decision = Map.get(@swaps, i) %>
+            <% left_card = swap_down_card(@slots, i, :left) %>
+            <% right_card = swap_down_card(@slots, i, :right) %>
+            <div style="background: rgba(26,20,16,0.6); border: 1px solid rgba(244,236,216,0.18); padding: 8px; border-radius: 4px; display: flex; align-items: center; gap: 10px;">
+              <.yokai_card suit={card.suit} rank={card.rank} width={44} />
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; gap: 6px;">
+                  <button
+                    phx-click="set_swap"
+                    phx-value-up={i}
+                    phx-value-side="left"
+                    style={swap_button_style(decision, :left)}
+                  >
+                    Left {if left_card && left_card.is_boss, do: "Boss", else: "card"}
+                  </button>
+                  <button
+                    phx-click="set_swap"
+                    phx-value-up={i}
+                    phx-value-side="right"
+                    style={swap_button_style(decision, :right)}
+                  >
+                    Right {if right_card && right_card.is_boss, do: "Boss", else: "card"}
+                  </button>
+                  <button
+                    phx-click="clear_swap"
+                    phx-value-up={i}
+                    style="background: transparent; border: 1px solid rgba(244,236,216,0.18); color: rgba(244,236,216,0.55); padding: 4px 8px; font-size: 10px; cursor: pointer;"
+                  >
+                    Keep
+                  </button>
+                </div>
+                <%= if decision && swap_down_card(@slots, i, decision.side) && swap_down_card(@slots, i, decision.side).is_boss do %>
+                  <div style="display: flex; gap: 6px; align-items: center; font-size: 10px; color: rgba(244,236,216,0.55); font-family: var(--sans); text-transform: uppercase; letter-spacing: 0.08em;">
+                    Face-up:
+                    <button
+                      phx-click="set_swap_keep"
+                      phx-value-up={i}
+                      phx-value-keep="up"
+                      style={keep_button_style(decision, :up)}
+                    >
+                      Current
+                    </button>
+                    <button
+                      phx-click="set_swap_keep"
+                      phx-value-up={i}
+                      phx-value-keep="down"
+                      style={keep_button_style(decision, :down)}
+                    >
+                      Hidden
+                    </button>
+                  </div>
+                <% end %>
+              </div>
+            </div>
           <% end %>
         </div>
       <% end %>

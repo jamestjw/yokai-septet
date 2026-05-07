@@ -182,9 +182,10 @@ defmodule YokaiSeptet.GameTest do
     assert length(state.straw) == 2
 
     Enum.each(state.straw, fn slots ->
-      assert length(slots) == 7
-      face_up = Enum.count(slots, &(&1.face_up != nil))
-      face_down = Enum.count(slots, &(&1.face_down != nil))
+      assert length(slots.downs) == 7
+      assert length(slots.ups) == 6
+      face_up = Enum.count(slots.ups, &(&1 != nil))
+      face_down = Enum.count(slots.downs, &(&1.card != nil))
       assert face_up == 6
       assert face_down == 7
     end)
@@ -195,7 +196,7 @@ defmodule YokaiSeptet.GameTest do
     all_dealt =
       List.flatten(state.hands) ++
         Enum.flat_map(state.straw, fn slots ->
-          Enum.flat_map(slots, fn s -> [s.face_down, s.face_up] end)
+          slots.ups ++ Enum.map(slots.downs, & &1.card)
         end) ++
         [state.trump_card]
 
@@ -212,7 +213,7 @@ defmodule YokaiSeptet.GameTest do
 
     fu0 =
       Enum.at(state.straw, 0)
-      |> Enum.map(& &1.face_up)
+      |> Map.fetch!(:ups)
       |> Enum.reject(&is_nil/1)
 
     assert length(eff0) == length(actual0) + length(fu0)
@@ -231,10 +232,14 @@ defmodule YokaiSeptet.GameTest do
     forest_card = non_boss(:forest, 5)
     river_card = non_boss(:river, 4)
 
-    p1_slots = [
-      %{face_down: snow_boss, face_up: forest_card},
-      %{face_down: river_card, face_up: nil} | List.duplicate(%{face_down: nil, face_up: nil}, 5)
-    ]
+    p1_straw = %{
+      downs:
+        [
+          %{card: snow_boss, revealed?: false},
+          %{card: river_card, revealed?: false}
+        ] ++ List.duplicate(%{card: nil, revealed?: false}, 5),
+      ups: [forest_card | List.duplicate(nil, 5)]
+    }
 
     state = %{
       base
@@ -245,7 +250,7 @@ defmodule YokaiSeptet.GameTest do
         tricks_won: [13, 0],
         bosses_by_player: [captured_p0, []],
         hands: [[], [boss(:river), boss(:forest), boss(:flame)]],
-        straw: [List.duplicate(%{face_down: nil, face_up: nil}, 7), p1_slots],
+        straw: [empty_straw(), p1_straw],
         last_trick_info: %{winner_idx: 0, cards: [], lead_suit: :wind},
         phase: :round_end
     }
@@ -262,7 +267,88 @@ defmodule YokaiSeptet.GameTest do
     assert log.points_awarded[1] == 8
   end
 
+  test "2p revealed straw cards stay in the straw pile and become playable" do
+    deck = Cards.build_deck()
+    base = Game.new("2p")
+    up0 = non_boss(:earth, 2)
+    down0 = non_boss(:mist, 3)
+    opponent = non_boss(:flame, 8)
+
+    straw0 = %{
+      downs: [
+        %{card: down0, revealed?: false} | List.duplicate(%{card: nil, revealed?: false}, 6)
+      ],
+      ups: [up0 | List.duplicate(nil, 5)]
+    }
+
+    state = %{
+      base
+      | mode: "2p",
+        num_p: 2,
+        phase: :playing,
+        trump_card: Enum.find(deck, &(&1.suit == :snow and &1.rank == 8)),
+        trump_suit: :snow,
+        current_idx: 0,
+        hands: [[], [opponent]],
+        straw: [straw0, empty_straw()]
+    }
+
+    {:continue, state} = Game.play_card(state, 0, up0.id)
+    {:trick_complete, state} = Game.play_card(state, 1, opponent.id)
+    state = Game.resolve_trick(state)
+
+    down = state.straw |> Enum.at(0) |> Map.fetch!(:downs) |> Enum.at(0)
+    assert down.card.id == down0.id
+    assert down.revealed?
+    assert Enum.at(state.hands, 0) == []
+    assert Enum.any?(Game.effective_hand(state, 0), &(&1.id == down0.id))
+  end
+
+  test "2p boss-under-boss swap requires choosing which boss remains face-up" do
+    base = Game.new("2p")
+    discard = non_boss(:earth, 2)
+    up_boss = boss(:forest)
+    down_boss = boss(:snow)
+
+    straw0 = %{
+      downs: [
+        %{card: down_boss, revealed?: false} | List.duplicate(%{card: nil, revealed?: false}, 6)
+      ],
+      ups: [up_boss | List.duplicate(nil, 5)]
+    }
+
+    state = %{
+      base
+      | mode: "2p",
+        num_p: 2,
+        phase: :swapping,
+        trump_card: non_boss(:wind, 2),
+        trump_suit: :wind,
+        hands: [[discard], [non_boss(:earth, 3)]],
+        straw: [straw0, empty_straw()],
+        human_discard_id: discard.id
+    }
+
+    state = Game.set_swap_choice(state, 0, :left)
+    assert Game.confirm_setup(state).phase == :swapping
+
+    state = Game.set_swap_keep(state, 0, :down) |> Game.confirm_setup()
+    assert state.phase == :playing
+    assert Enum.at(state.straw, 0).ups |> hd() |> Map.get(:id) == down_boss.id
+
+    assert state.straw
+           |> Enum.at(0)
+           |> Map.fetch!(:downs)
+           |> hd()
+           |> Map.fetch!(:card)
+           |> Map.get(:id) == up_boss.id
+  end
+
   # ----- helpers -----
+
+  defp empty_straw do
+    %{downs: List.duplicate(%{card: nil, revealed?: false}, 7), ups: List.duplicate(nil, 6)}
+  end
 
   # The Game.score_round/1 function is private; we exercise it indirectly by
   # calling Game.resolve_trick/1 on a phase-prepared state. But our test
