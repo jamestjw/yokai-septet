@@ -111,6 +111,31 @@ defmodule YokaiSeptet.GameTest do
     assert log.points_awarded[0] == 9
   end
 
+  test "3p game tie after greed loss goes to player left of trick loser" do
+    base = Game.new("3p")
+
+    state = %{
+      base
+      | mode: "3p",
+        num_p: 3,
+        trump_card: non_boss(:wind, 2),
+        trump_suit: :wind,
+        tricks_won: [7, 0, 0],
+        bosses_by_player: [[boss(:wind), boss(:earth)], [], []],
+        hands: [[], [], []],
+        scores: %{0 => 0, 1 => 4, 2 => 4},
+        last_trick_info: %{winner_idx: 0, cards: [], lead_suit: :wind},
+        phase: :round_end
+    }
+
+    state = invoke_score_round(state)
+
+    assert state.phase == :game_end
+    assert state.scores[1] == 7
+    assert state.scores[2] == 7
+    assert state.game_winner_team == 1
+  end
+
   # ----- Step 2 (lead-player carry-over across rounds) -----
 
   test "lead_player_idx is updated to trick winner during resolve_trick" do

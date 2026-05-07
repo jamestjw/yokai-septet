@@ -816,10 +816,13 @@ defmodule YokaiSeptetWeb.TableLive do
   defp game_over(assigns) do
     g = assigns.game
 
-    {winner_tid, winner_score} =
-      Enum.reduce(g.scores, {0, -1}, fn {k, v}, {bk, bv} ->
-        if v > bv, do: {k, v}, else: {bk, bv}
-      end)
+    winner_tid =
+      g.game_winner_team ||
+        g.scores
+        |> Enum.max_by(fn {_, v} -> v end)
+        |> elem(0)
+
+    winner_score = Map.get(g.scores, winner_tid, 0)
 
     teams =
       g.players

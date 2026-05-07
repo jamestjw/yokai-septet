@@ -62,7 +62,8 @@ defmodule YokaiSeptet.Game do
       # 2p :swapping state: human's chosen discard id and swap decisions.
       human_discard_id: nil,
       human_swap_decisions: %{},
-      setup_confirmed: %{}
+      setup_confirmed: %{},
+      game_winner_team: nil
     }
   end
 
@@ -709,10 +710,43 @@ defmodule YokaiSeptet.Game do
     state = %{state | scores: new_scores, round_log: [log]}
 
     if Enum.any?(new_scores, fn {_, v} -> v >= 7 end) do
-      %{state | phase: :game_end}
+      %{
+        state
+        | phase: :game_end,
+          game_winner_team: game_winner_team(state, new_scores, over_tricks)
+      }
     else
       state
     end
+  end
+
+  defp game_winner_team(%{mode: "3p"} = state, scores, over_tricks) do
+    top_score = scores |> Map.values() |> Enum.max()
+    leaders = scores |> Enum.filter(fn {_, v} -> v == top_score end) |> Enum.map(&elem(&1, 0))
+
+    cond do
+      length(leaders) == 1 ->
+        hd(leaders)
+
+      over_tricks ->
+        {trick_loser, _} = over_tricks
+        left_of_loser = rem(trick_loser + 1, state.num_p)
+
+        if left_of_loser in leaders do
+          left_of_loser
+        else
+          hd(leaders)
+        end
+
+      true ->
+        hd(leaders)
+    end
+  end
+
+  defp game_winner_team(_state, scores, _over_tricks) do
+    scores
+    |> Enum.max_by(fn {_, v} -> v end)
+    |> elem(0)
   end
 
   # Per-card scoring: solid pips always count; outline pips count only in 3p.
