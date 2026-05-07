@@ -12,10 +12,12 @@ config :yokai_septet, YokaiSeptetWeb.Endpoint,
 # known as HSTS. If you have a health check endpoint, you may want to exclude it below.
 # Note `:force_ssl` is required to be set at compile-time.
 config :yokai_septet, YokaiSeptetWeb.Endpoint,
-  force_ssl: [rewrite_on: [:x_forwarded_proto]],
-  exclude: [
-    paths: ["/health/live", "/health/ready"],
-    hosts: ["localhost", "127.0.0.1"]
+  force_ssl: [
+    rewrite_on: [:x_forwarded_proto],
+    exclude: [
+      paths: ["/health/live", "/health/ready"],
+      hosts: ["localhost", "127.0.0.1"]
+    ]
   ]
 
 # Do not print debug messages in production
