@@ -36,7 +36,9 @@ defmodule YokaiSeptetWeb.Endpoint do
   end
 
   plug Plug.RequestId
-  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
+  plug Plug.Telemetry,
+    event_prefix: [:phoenix, :endpoint],
+    log: {YokaiSeptetWeb.CustomTelemetry, :request_log_level, []}
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
