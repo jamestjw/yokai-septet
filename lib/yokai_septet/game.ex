@@ -194,12 +194,13 @@ defmodule YokaiSeptet.Game do
   # Lead-player rules
   # =========================================================================
 
-  # Round 1 (no carry-over yet): A holder leads, with a Snow-boss fallback
-  # for the rare case where the trump card is the A.
+  # Round 1 (no carry-over yet): A holder leads. If the A is the face-up
+  # trump card, the rules call for the holder of the highest card overall
+  # (Snow's 13) to lead instead.
   defp find_lead_round1(hands, trump_card) do
     if trump_card && trump_card.is_a do
       Enum.find_index(hands, fn h ->
-        Enum.any?(h, &(&1.suit == :snow and &1.rank == 12))
+        Enum.any?(h, &(&1.suit == :snow and &1.rank == 13))
       end) || 0
     else
       Enum.find_index(hands, fn h -> Enum.any?(h, & &1.is_a) end) || 0
@@ -799,7 +800,9 @@ defmodule YokaiSeptet.Game do
       end
 
     cond do
-      winners != [] -> hd(winners).id
+      winners != [] ->
+        hd(winners).id
+
       true ->
         non_boss = Enum.reject(legal, &(&1.is_boss or &1.is_a))
         pool = if non_boss == [], do: legal, else: non_boss

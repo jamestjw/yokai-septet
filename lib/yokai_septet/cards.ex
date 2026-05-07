@@ -2,19 +2,91 @@ defmodule YokaiSeptet.Cards do
   @moduledoc """
   Yokai Septet card system — Pocket Edition rules-accurate.
 
-  7 suits, 7 cards each = 49 total. Each suit's rank range differs.
-  The strongest card of each suit is its Boss Yokai. Wind contains the
-  special "A" card — the most powerful card in the game.
+  7 suits, 7 cards each = 49 total. Each suit's rank range overlaps with the
+  others, but every suit contains a card of rank 7, which is the suit's Boss
+  Yokai. Within a suit, the highest-numbered card wins tricks (so Snow's 13
+  beats Snow's 7, even though the 7 is the Boss). The A card (Wind only)
+  always wins the trick when played.
   """
 
   @suits [
-    %{id: :wind,   kanji: "風", name: "Wind",   strength: 1, color: "#a89878", ranks: ["A", 1, 2, 3, 4, 5, 6],   boss_pts4: 0, boss_pts3_extra: 0, tagline: "Karasu-tengu of the cold gust"},
-    %{id: :earth,  kanji: "土", name: "Earth",  strength: 2, color: "#b8893a", ranks: [1, 2, 3, 4, 5, 6, 7],     boss_pts4: 0, boss_pts3_extra: 1, tagline: "Tsuchigumo of the deep cave"},
-    %{id: :mist,   kanji: "霧", name: "Mist",   strength: 3, color: "#7a8b94", ranks: [2, 3, 4, 5, 6, 7, 8],     boss_pts4: 1, boss_pts3_extra: 1, tagline: "Yurei of the shrouded lantern"},
-    %{id: :river,  kanji: "川", name: "River",  strength: 4, color: "#1f3a5f", ranks: [3, 4, 5, 6, 7, 8, 9],     boss_pts4: 1, boss_pts3_extra: 2, tagline: "Kappa of the still pond"},
-    %{id: :forest, kanji: "森", name: "Forest", strength: 5, color: "#2d5d3a", ranks: [4, 5, 6, 7, 8, 9, 10],    boss_pts4: 2, boss_pts3_extra: 2, tagline: "Kodama of the old grove"},
-    %{id: :flame,  kanji: "炎", name: "Flame",  strength: 6, color: "#c8483c", ranks: [5, 6, 7, 8, 9, 10, 11],   boss_pts4: 2, boss_pts3_extra: 3, tagline: "Oni of the burning forge"},
-    %{id: :snow,   kanji: "雪", name: "Snow",   strength: 7, color: "#5d3a6b", ranks: [6, 7, 8, 9, 10, 11, 12],  boss_pts4: 3, boss_pts3_extra: 3, tagline: "Yuki-onna of the white peak"}
+    %{
+      id: :wind,
+      kanji: "風",
+      name: "Wind",
+      strength: 1,
+      color: "#a89878",
+      ranks: ["A", 2, 3, 4, 5, 6, 7],
+      boss_pts4: 0,
+      boss_pts3_extra: 0,
+      tagline: "Karasu-tengu of the cold gust"
+    },
+    %{
+      id: :earth,
+      kanji: "土",
+      name: "Earth",
+      strength: 2,
+      color: "#b8893a",
+      ranks: [2, 3, 4, 5, 6, 7, 8],
+      boss_pts4: 0,
+      boss_pts3_extra: 1,
+      tagline: "Tsuchigumo of the deep cave"
+    },
+    %{
+      id: :mist,
+      kanji: "霧",
+      name: "Mist",
+      strength: 3,
+      color: "#7a8b94",
+      ranks: [3, 4, 5, 6, 7, 8, 9],
+      boss_pts4: 1,
+      boss_pts3_extra: 1,
+      tagline: "Yurei of the shrouded lantern"
+    },
+    %{
+      id: :river,
+      kanji: "川",
+      name: "River",
+      strength: 4,
+      color: "#1f3a5f",
+      ranks: [4, 5, 6, 7, 8, 9, 10],
+      boss_pts4: 1,
+      boss_pts3_extra: 2,
+      tagline: "Kappa of the still pond"
+    },
+    %{
+      id: :forest,
+      kanji: "森",
+      name: "Forest",
+      strength: 5,
+      color: "#2d5d3a",
+      ranks: [5, 6, 7, 8, 9, 10, 11],
+      boss_pts4: 2,
+      boss_pts3_extra: 2,
+      tagline: "Kodama of the old grove"
+    },
+    %{
+      id: :flame,
+      kanji: "炎",
+      name: "Flame",
+      strength: 6,
+      color: "#c8483c",
+      ranks: [6, 7, 8, 9, 10, 11, 12],
+      boss_pts4: 2,
+      boss_pts3_extra: 3,
+      tagline: "Oni of the burning forge"
+    },
+    %{
+      id: :snow,
+      kanji: "雪",
+      name: "Snow",
+      strength: 7,
+      color: "#5d3a6b",
+      ranks: [7, 8, 9, 10, 11, 12, 13],
+      boss_pts4: 3,
+      boss_pts3_extra: 3,
+      tagline: "Yuki-onna of the white peak"
+    }
   ]
 
   @suit_by_id Map.new(@suits, &{&1.id, &1})
@@ -27,8 +99,10 @@ defmodule YokaiSeptet.Cards do
     {cards, _} =
       for suit <- @suits, rank <- suit.ranks, reduce: {[], 0} do
         {acc, id} ->
-          last = List.last(suit.ranks)
-          is_boss = rank == last
+          # The Boss Yokai is the rank-7 card of every suit. Note that Boss
+          # is not necessarily the highest-numbered card in its suit — Snow's
+          # Boss is rank 7, which is the *lowest* card in Snow's range.
+          is_boss = rank == 7
           is_a = rank == "A"
 
           card = %{

@@ -6,9 +6,7 @@ defmodule YokaiSeptet.GameTest do
   # Build a deterministic state for a small unit assertion. We avoid relying on
   # Game.start_round/1's shuffle by constructing the state directly.
   defp boss(suit) do
-    s = Cards.suit(suit)
-    last = List.last(s.ranks)
-    Cards.build_deck() |> Enum.find(&(&1.suit == suit and &1.rank == last))
+    Cards.build_deck() |> Enum.find(&(&1.suit == suit and &1.is_boss))
   end
 
   defp non_boss(suit, rank) do
@@ -30,7 +28,7 @@ defmodule YokaiSeptet.GameTest do
       base
       | mode: "4p",
         num_p: 4,
-        trump_card: non_boss(:earth, 1),
+        trump_card: non_boss(:earth, 2),
         trump_suit: :earth,
         # Team 0 took 7 tricks (player 0 alone for simplicity).
         tricks_won: [7, 0, 0, 0],
@@ -69,7 +67,7 @@ defmodule YokaiSeptet.GameTest do
       base
       | mode: "3p",
         num_p: 3,
-        trump_card: non_boss(:wind, 1),
+        trump_card: non_boss(:wind, 2),
         trump_suit: :wind,
         tricks_won: [3, 0, 0],
         bosses_by_player: [all_bosses, [], []],
@@ -97,7 +95,7 @@ defmodule YokaiSeptet.GameTest do
       base
       | mode: "4p",
         num_p: 4,
-        trump_card: non_boss(:wind, 1),
+        trump_card: non_boss(:wind, 2),
         trump_suit: :wind,
         tricks_won: [4, 0, 0, 0],
         bosses_by_player: [all_bosses, [], [], []],
@@ -129,7 +127,7 @@ defmodule YokaiSeptet.GameTest do
     state = %{
       base
       | num_p: 4,
-        trump_card: Enum.find(deck, &(&1.suit == :wind and &1.rank == 1)),
+        trump_card: Enum.find(deck, &(&1.suit == :wind and &1.rank == 2)),
         trump_suit: :wind,
         tricks_won: [0, 0, 0, 0],
         bosses_by_player: [[], [], [], []],
@@ -168,6 +166,7 @@ defmodule YokaiSeptet.GameTest do
 
     # Trump card is the 49th, distinct from any straw or hand card.
     assert state.trump_card != nil
+
     all_dealt =
       List.flatten(state.hands) ++
         Enum.flat_map(state.straw, fn slots ->
@@ -185,6 +184,7 @@ defmodule YokaiSeptet.GameTest do
 
     eff0 = Game.effective_hand(state, 0)
     actual0 = Enum.at(state.hands, 0)
+
     fu0 =
       Enum.at(state.straw, 0)
       |> Enum.map(& &1.face_up)
@@ -205,6 +205,7 @@ defmodule YokaiSeptet.GameTest do
     snow_boss = boss(:snow)
     forest_card = non_boss(:forest, 5)
     river_card = non_boss(:river, 4)
+
     p1_slots = [
       %{face_down: snow_boss, face_up: forest_card},
       %{face_down: river_card, face_up: nil} | List.duplicate(%{face_down: nil, face_up: nil}, 5)
@@ -214,7 +215,7 @@ defmodule YokaiSeptet.GameTest do
       base
       | mode: "2p",
         num_p: 2,
-        trump_card: non_boss(:earth, 1),
+        trump_card: non_boss(:earth, 2),
         trump_suit: :earth,
         tricks_won: [13, 0],
         bosses_by_player: [captured_p0, []],

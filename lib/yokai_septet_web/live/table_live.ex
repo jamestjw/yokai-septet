@@ -185,12 +185,20 @@ defmodule YokaiSeptetWeb.TableLive do
       )
 
     ~H"""
-    <div class="tatami" style="min-height: 100vh; display: flex; flex-direction: column; color: var(--washi);">
+    <div
+      class="tatami"
+      style="min-height: 100vh; display: flex; flex-direction: column; color: var(--washi);"
+    >
       <header style="display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid rgba(244, 236, 216, 0.08);">
-        <button phx-click="nav_home" style="background: none; border: none; cursor: pointer; color: var(--washi); display: flex; align-items: center; gap: 12px; font-family: var(--serif); font-size: 14px; opacity: 0.85;">
+        <button
+          phx-click="nav_home"
+          style="background: none; border: none; cursor: pointer; color: var(--washi); display: flex; align-items: center; gap: 12px; font-family: var(--serif); font-size: 14px; opacity: 0.85;"
+        >
           <span>←</span>
           <span class="kanji">退室</span>
-          <span style="letter-spacing: 0.16em; text-transform: uppercase; font-size: 11px; font-family: var(--sans);">Leave Table</span>
+          <span style="letter-spacing: 0.16em; text-transform: uppercase; font-size: 11px; font-family: var(--sans);">
+            Leave Table
+          </span>
         </button>
 
         <div style="display: flex; align-items: center; gap: 24px; font-family: var(--sans); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(244, 236, 216, 0.7);">
@@ -203,7 +211,8 @@ defmodule YokaiSeptetWeb.TableLive do
       </header>
 
       <div style="flex: 1; position: relative; padding: 24px 32px 0;">
-        <div style="position: absolute; inset: 16px 32px 0; border-radius: 50%/40%; background: radial-gradient(ellipse at center, #2c4a30 0%, #1f3324 75%); box-shadow: inset 0 0 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,175,55,0.15);"></div>
+        <div style="position: absolute; inset: 16px 32px 0; border-radius: 50%/40%; background: radial-gradient(ellipse at center, #2c4a30 0%, #1f3324 75%); box-shadow: inset 0 0 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,175,55,0.15);">
+        </div>
 
         <div style="position: relative; width: 100%; height: 100%; min-height: 600px;">
           <%= for {p_idx, seat_i} <- Enum.with_index(@seat_order) do %>
@@ -227,7 +236,12 @@ defmodule YokaiSeptetWeb.TableLive do
               <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0.85;">
                 <div class="eyebrow" style="color: rgba(244,236,216,0.55);">切札 Trump</div>
                 <div style="transform: rotate(-4deg); filter: drop-shadow(0 6px 12px rgba(0,0,0,0.45));">
-                  <.yokai_card suit={@game.trump_card.suit} rank={@game.trump_card.rank} is_a={@game.trump_card.is_a} width={68} />
+                  <.yokai_card
+                    suit={@game.trump_card.suit}
+                    rank={@game.trump_card.rank}
+                    is_a={@game.trump_card.is_a}
+                    width={68}
+                  />
                 </div>
               </div>
             </div>
@@ -254,7 +268,9 @@ defmodule YokaiSeptetWeb.TableLive do
           <%= if @game.phase == :trick_end and @game.last_trick_info do %>
             <% seat_i = Enum.find_index(@seat_order, &(&1 == @game.last_trick_info.winner_idx)) %>
             <% pos = Enum.at(@seat_positions, seat_i) %>
-            <div class="fade-in" style={
+            <div
+              class="fade-in"
+              style={
               "position: absolute;" <>
               " left: #{pos.x * 100}%; top: #{pos.y * 100}%;" <>
               " transform: translate(-50%, -50%);" <>
@@ -263,7 +279,8 @@ defmodule YokaiSeptetWeb.TableLive do
               " font-family: var(--kanji); font-size: 14px; letter-spacing: 0.2em; font-weight: 600;" <>
               " box-shadow: 0 0 0 1px rgba(0,0,0,0.2) inset, 0 4px 16px rgba(0,0,0,0.4);" <>
               " z-index: 20;"
-            }>
+            }
+            >
               勝 · Won the trick
             </div>
           <% end %>
@@ -441,7 +458,8 @@ defmodule YokaiSeptetWeb.TableLive do
             </div>
           </div>
           <%= if @is_current do %>
-            <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--gold-bright); animation: pulse 1.4s ease-in-out infinite; box-shadow: 0 0 8px var(--gold-bright);"></div>
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--gold-bright); animation: pulse 1.4s ease-in-out infinite; box-shadow: 0 0 8px var(--gold-bright);">
+            </div>
           <% end %>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: rgba(244,236,216,0.7);">
@@ -507,7 +525,9 @@ defmodule YokaiSeptetWeb.TableLive do
             <div style="font-size: 15px; font-weight: 500;">
               {@player_name}
               <%= if @is_lead do %>
-                <span style="color: var(--gold-bright); font-family: var(--kanji); font-size: 12px; margin-left: 6px;">先 Lead</span>
+                <span style="color: var(--gold-bright); font-family: var(--kanji); font-size: 12px; margin-left: 6px;">
+                  先 Lead
+                </span>
               <% end %>
             </div>
             <div style="font-size: 11px; font-family: var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: rgba(244,236,216,0.55);">
@@ -541,7 +561,9 @@ defmodule YokaiSeptetWeb.TableLive do
 
       <div style="display: flex; justify-content: center; gap: 4px; min-height: 130px;">
         <%= if @hand == [] do %>
-          <div style="color: rgba(244,236,216,0.4); font-style: italic; padding: 40px;">Hand is empty</div>
+          <div style="color: rgba(244,236,216,0.4); font-style: italic; padding: 40px;">
+            Hand is empty
+          </div>
         <% else %>
           <%= for {c, i} <- Enum.with_index(@hand) do %>
             <% playable = c.id in @legal and @is_my_turn %>
@@ -600,7 +622,8 @@ defmodule YokaiSeptetWeb.TableLive do
         <div>
           <div class="eyebrow" style="color: rgba(244,236,216,0.55);">Passing phase</div>
           <div style="font-size: 15px; margin-top: 4px;">
-            Choose 3 cards to pass to <span style="color: var(--gold-bright); font-family: var(--kanji);">{@pass_target}</span>
+            Choose 3 cards to pass to
+            <span style="color: var(--gold-bright); font-family: var(--kanji);">{@pass_target}</span>
           </div>
         </div>
         <button
@@ -616,13 +639,11 @@ defmodule YokaiSeptetWeb.TableLive do
       <div style="display: flex; justify-content: center; gap: 4px; min-height: 130px;">
         <%= for {c, i} <- Enum.with_index(@my_hand) do %>
           <% selected? = c.id in @sel %>
-          <div
-            style={
+          <div style={
               "margin-left: #{if i == 0, do: 0, else: -28}px;" <>
               " transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);" <>
               " cursor: pointer; z-index: #{i};"
-            }
-          >
+            }>
             <.yokai_card
               suit={c.suit}
               rank={c.rank}
@@ -692,16 +713,31 @@ defmodule YokaiSeptetWeb.TableLive do
       )
 
     ~H"""
-    <div class="fade-in" style="position: fixed; inset: 0; background: rgba(10, 8, 6, 0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 100;">
-      <div class="washi-card slide-up" style="max-width: 880px; width: 92%; padding: 48px 56px; position: relative; box-shadow: var(--shadow-lg); border-radius: 4px;">
+    <div
+      class="fade-in"
+      style="position: fixed; inset: 0; background: rgba(10, 8, 6, 0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 100;"
+    >
+      <div
+        class="washi-card slide-up"
+        style="max-width: 880px; width: 92%; padding: 48px 56px; position: relative; box-shadow: var(--shadow-lg); border-radius: 4px;"
+      >
         <div style="position: absolute; top: 32px; right: 36px; width: 64px; height: 64px; background: var(--shu); color: var(--washi); display: flex; align-items: center; justify-content: center; font-family: var(--kanji); font-size: 28px; font-weight: 600; transform: rotate(-8deg); box-shadow: 0 0 0 1px rgba(0,0,0,0.12) inset;">
           勝
         </div>
 
         <div class="eyebrow" style="color: var(--sumi-mute);">Round {@game.round} · Result</div>
-        <h1 class="kanji" style="font-size: 56px; margin: 12px 0 4px; color: var(--sumi); font-weight: 500;">{@title}</h1>
-        <p style="font-size: 18px; color: var(--sumi-soft); margin: 0 0 4px; font-style: italic;">{@subtitle}</p>
-        <p style="font-size: 14px; color: var(--sumi-mute); margin: 0; font-family: var(--sans);">{@reason}</p>
+        <h1
+          class="kanji"
+          style="font-size: 56px; margin: 12px 0 4px; color: var(--sumi); font-weight: 500;"
+        >
+          {@title}
+        </h1>
+        <p style="font-size: 18px; color: var(--sumi-soft); margin: 0 0 4px; font-style: italic;">
+          {@subtitle}
+        </p>
+        <p style="font-size: 14px; color: var(--sumi-mute); margin: 0; font-family: var(--sans);">
+          {@reason}
+        </p>
 
         <hr class="hairline" style="margin: 32px 0;" />
 
@@ -714,17 +750,26 @@ defmodule YokaiSeptetWeb.TableLive do
               " border: 1px solid #{if is_winner, do: "var(--gold)", else: "var(--line)"};" <>
               " border-radius: 2px;"
             }>
-              <div class="eyebrow" style={"color: #{if is_winner, do: "var(--shu)", else: "var(--sumi-mute)"}; margin-bottom: 8px;"}>
+              <div
+                class="eyebrow"
+                style={"color: #{if is_winner, do: "var(--shu)", else: "var(--sumi-mute)"}; margin-bottom: 8px;"}
+              >
                 {if is_winner, do: "Winner", else: "Team"}
               </div>
-              <div style="font-size: 18px; font-weight: 500; margin-bottom: 16px; color: var(--sumi);">{Enum.join(t.names, " & ")}</div>
+              <div style="font-size: 18px; font-weight: 500; margin-bottom: 16px; color: var(--sumi);">
+                {Enum.join(t.names, " & ")}
+              </div>
               <div style="display: flex; gap: 24px; margin-bottom: 16px; font-family: var(--sans); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sumi-mute);">
                 <div>
-                  <div style="font-size: 28px; font-family: var(--kanji); color: var(--sumi);">{t.tricks}</div>
+                  <div style="font-size: 28px; font-family: var(--kanji); color: var(--sumi);">
+                    {t.tricks}
+                  </div>
                   Tricks
                 </div>
                 <div>
-                  <div style="font-size: 28px; font-family: var(--kanji); color: var(--shu);">{length(t.bosses)}</div>
+                  <div style="font-size: 28px; font-family: var(--kanji); color: var(--shu);">
+                    {length(t.bosses)}
+                  </div>
                   Bosses
                 </div>
               </div>
@@ -745,8 +790,12 @@ defmodule YokaiSeptetWeb.TableLive do
             <%= for {tid, v} <- Enum.sort_by(@game.scores, &elem(&1, 0)) do %>
               <div style="display: flex; align-items: center; gap: 8px;">
                 <div style={"width: 8px; height: 8px; background: #{team_color(tid)};"}></div>
-                <span style="font-family: var(--kanji); font-size: 24px; font-weight: 500; color: var(--sumi);">{v}</span>
-                <span style="font-size: 11px; font-family: var(--sans); color: var(--sumi-mute); letter-spacing: 0.16em; text-transform: uppercase;">/ 7</span>
+                <span style="font-family: var(--kanji); font-size: 24px; font-weight: 500; color: var(--sumi);">
+                  {v}
+                </span>
+                <span style="font-size: 11px; font-family: var(--sans); color: var(--sumi-mute); letter-spacing: 0.16em; text-transform: uppercase;">
+                  / 7
+                </span>
               </div>
             <% end %>
           </div>
@@ -801,14 +850,23 @@ defmodule YokaiSeptetWeb.TableLive do
       )
 
     ~H"""
-    <div class="fade-in" style="position: fixed; inset: 0; background: rgba(10, 8, 6, 0.92); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 200;">
-      <div class="slide-up" style="max-width: 720px; width: 92%; text-align: center; color: var(--washi);">
-        <div class="kanji" style={
+    <div
+      class="fade-in"
+      style="position: fixed; inset: 0; background: rgba(10, 8, 6, 0.92); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 200;"
+    >
+      <div
+        class="slide-up"
+        style="max-width: 720px; width: 92%; text-align: center; color: var(--washi);"
+      >
+        <div
+          class="kanji"
+          style={
           "font-size: 180px; line-height: 1;" <>
           " color: #{if @is_victory, do: "var(--gold-bright)", else: "var(--shu)"};" <>
           " font-weight: 500; margin-bottom: 20px;" <>
           " text-shadow: 0 0 60px rgba(212, 175, 55, 0.3);"
-        }>
+        }
+        >
           {if @is_victory, do: "勝", else: "終"}
         </div>
         <div class="eyebrow" style="color: rgba(244,236,216,0.55);">
@@ -818,7 +876,10 @@ defmodule YokaiSeptetWeb.TableLive do
           {if @is_victory, do: "Victory", else: "Defeat"}
         </h1>
         <p style="font-size: 16px; color: rgba(244,236,216,0.7); max-width: 480px; margin: 0 auto; font-style: italic; line-height: 1.6;">
-          {Enum.join(@winner_names, " & ")} captured the seven over {@game.round} round{if @game.round != 1, do: "s", else: ""}.
+          {Enum.join(@winner_names, " & ")} captured the seven over {@game.round} round{if @game.round !=
+                                                                                             1,
+                                                                                           do: "s",
+                                                                                           else: ""}.
         </p>
 
         <hr style="border: none; height: 1px; background: rgba(244,236,216,0.15); margin: 40px auto; width: 200px;" />
@@ -835,7 +896,10 @@ defmodule YokaiSeptetWeb.TableLive do
               <div style="font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(244,236,216,0.55); font-family: var(--sans); margin-bottom: 8px;">
                 {Enum.join(names, " & ")}
               </div>
-              <div class="kanji" style={"font-size: 56px; font-weight: 500; color: #{if is_win, do: "var(--gold-bright)", else: "var(--washi)"};"}>
+              <div
+                class="kanji"
+                style={"font-size: 56px; font-weight: 500; color: #{if is_win, do: "var(--gold-bright)", else: "var(--washi)"};"}
+              >
                 {Map.get(@game.scores, tid, 0)}
               </div>
             </div>
@@ -843,7 +907,11 @@ defmodule YokaiSeptetWeb.TableLive do
         </div>
 
         <div style="display: flex; justify-content: center; gap: 16px;">
-          <button class="btn btn-ghost" style="border-color: rgba(244,236,216,0.3); color: var(--washi);" phx-click="nav_home">
+          <button
+            class="btn btn-ghost"
+            style="border-color: rgba(244,236,216,0.3); color: var(--washi);"
+            phx-click="nav_home"
+          >
             Home
           </button>
           <button class="btn btn-shu" phx-click="nav_home">
@@ -871,7 +939,10 @@ defmodule YokaiSeptetWeb.TableLive do
       " padding: " <> if(@owner == "self", do: "8px 32px 4px", else: "6px 0 0") <> ";"
     }>
       <%= for {slot, i} <- Enum.with_index(@slots) do %>
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 60px;" data-slot={i}>
+        <div
+          style="display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 60px;"
+          data-slot={i}
+        >
           <%= cond do %>
             <% slot.face_up != nil -> %>
               <% playable = @owner == "self" and slot.face_up.id in @legal and @is_my_turn %>
@@ -891,11 +962,14 @@ defmodule YokaiSeptetWeb.TableLive do
                 />
               </div>
             <% slot.face_down != nil -> %>
-              <div class="yokai-back" style={
+              <div
+                class="yokai-back"
+                style={
                 "width: " <> if(@owner == "self", do: "54px", else: "36px") <>
                 "; height: " <> if(@owner == "self", do: "76px", else: "50px") <>
                 "; display: flex; align-items: center; justify-content: center;"
-              }>
+              }
+              >
                 <span style="font-family: var(--kanji); font-size: 12px; opacity: 0.7;">七</span>
               </div>
             <% true -> %>
@@ -903,7 +977,8 @@ defmodule YokaiSeptetWeb.TableLive do
                 "width: " <> if(@owner == "self", do: "54px", else: "36px") <>
                 "; height: " <> if(@owner == "self", do: "76px", else: "50px") <>
                 "; border: 1px dashed rgba(244,236,216,0.18); border-radius: 6px;"
-              }></div>
+              }>
+              </div>
           <% end %>
         </div>
       <% end %>
@@ -920,7 +995,10 @@ defmodule YokaiSeptetWeb.TableLive do
     discard_id = g.human_discard_id
     swaps = g.human_swap_decisions
     slots = Enum.at(g.straw, assigns.h_idx)
-    boss_slots = Enum.with_index(slots) |> Enum.filter(fn {s, _} -> s.face_up && s.face_up.is_boss end)
+
+    boss_slots =
+      Enum.with_index(slots) |> Enum.filter(fn {s, _} -> s.face_up && s.face_up.is_boss end)
+
     can_confirm = discard_id != nil
 
     assigns =
