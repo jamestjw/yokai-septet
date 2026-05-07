@@ -1,18 +1,34 @@
 # YokaiSeptet
 
-To start your Phoenix server:
+A Phoenix web app for the Yokai Septet card game.
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+## Credits
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+The original game is [Yokai Septet](https://boardgamegeek.com/boardgame/251433/yokai-septet3) by Muneyuki Yokouchi (横内宗幸).
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+## Getting Started
 
-## Learn more
+* Run `mix setup` to install dependencies and prepare the app.
+* Start the server with `mix phx.server` or `iex -S mix phx.server`.
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://hexdocs.pm/phoenix/overview.html
-* Docs: https://hexdocs.pm/phoenix
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+Then open [`localhost:4000`](http://localhost:4000) in your browser.
+
+## Production
+
+When running a release in production, set these environment variables:
+
+* `SECRET_KEY_BASE` - required
+* `PHX_HOST` - required, the public host name for the app
+* `PHX_SERVER=true` - required when starting the release server
+* `PORT` - optional, defaults to `4000`
+* `DNS_CLUSTER_QUERY` - optional, only needed if you use DNS-based clustering
+
+Example:
+
+```bash
+PHX_SERVER=true \
+SECRET_KEY_BASE=your_secret_key_base \
+PHX_HOST=your.domain.com \
+PORT=4000 \
+bin/yokai_septet start
+```
