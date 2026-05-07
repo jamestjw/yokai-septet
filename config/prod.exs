@@ -14,7 +14,7 @@ config :yokai_septet, YokaiSeptetWeb.Endpoint,
 config :yokai_septet, YokaiSeptetWeb.Endpoint,
   force_ssl: [rewrite_on: [:x_forwarded_proto]],
   exclude: [
-    # paths: ["/health"],
+    paths: ["/health/live", "/health/ready"],
     hosts: ["localhost", "127.0.0.1"]
   ]
 

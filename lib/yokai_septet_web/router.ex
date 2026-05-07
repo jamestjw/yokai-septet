@@ -10,6 +10,17 @@ defmodule YokaiSeptetWeb.Router do
     plug :put_secure_browser_headers
   end
 
+  pipeline :health do
+    plug :accepts, ["json"]
+  end
+
+  scope "/health", YokaiSeptetWeb do
+    pipe_through :health
+
+    get "/live", HealthController, :live
+    get "/ready", HealthController, :ready
+  end
+
   scope "/", YokaiSeptetWeb do
     pipe_through :browser
 
