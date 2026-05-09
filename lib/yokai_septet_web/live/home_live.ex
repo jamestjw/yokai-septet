@@ -422,7 +422,7 @@ defmodule YokaiSeptetWeb.HomeLive do
         {@section.body}
       </p>
       <%= if @section.visual do %>
-        <div style="background: rgba(244, 236, 216, 0.5); border: 1px solid var(--line); padding: 24px; border-radius: 4px;">
+        <div style="background: rgba(244, 236, 216, 0.5); border: 1px solid var(--line); padding: 28px 36px; border-radius: 4px; overflow: visible;">
           <.rule_visual which={@section.visual} />
         </div>
       <% end %>
@@ -436,10 +436,12 @@ defmodule YokaiSeptetWeb.HomeLive do
     assigns = assign(assigns, suits: Cards.suits())
 
     ~H"""
-    <div style="display: flex; gap: 10px; flex-wrap: nowrap; justify-content: center; overflow-x: auto; padding-bottom: 4px;">
+    <div style="display: flex; gap: 10px; flex-wrap: nowrap; justify-content: center; overflow: visible; padding: 18px 34px 22px;">
       <%= for s <- @suits do %>
         <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-          <.yokai_card suit={s.id} rank={7} width={70} />
+          <div class="card-pop">
+            <.yokai_card suit={s.id} rank={7} width={70} />
+          </div>
           <div style="font-size: 10px; font-family: var(--sans); color: var(--sumi-mute); letter-spacing: 0.2em;">
             {String.upcase(s.name)}
           </div>
@@ -452,7 +454,9 @@ defmodule YokaiSeptetWeb.HomeLive do
   defp rule_visual(%{which: :a_card} = assigns) do
     ~H"""
     <div style="display: flex; justify-content: center;">
-      <.yokai_card suit={:wind} rank="A" is_a={true} width={70} />
+      <div class="card-pop">
+        <.yokai_card suit={:wind} rank="A" is_a={true} width={70} />
+      </div>
     </div>
     """
   end
@@ -460,9 +464,15 @@ defmodule YokaiSeptetWeb.HomeLive do
   defp rule_visual(%{which: :pass} = assigns) do
     ~H"""
     <div style="display: flex; gap: 4px; align-items: center; justify-content: center;">
-      <.yokai_card suit={:forest} rank={6} width={60} />
-      <.yokai_card suit={:mist} rank={3} width={60} />
-      <.yokai_card suit={:earth} rank={4} width={60} />
+      <div class="card-pop">
+        <.yokai_card suit={:forest} rank={6} width={60} />
+      </div>
+      <div class="card-pop">
+        <.yokai_card suit={:mist} rank={3} width={60} />
+      </div>
+      <div class="card-pop">
+        <.yokai_card suit={:earth} rank={4} width={60} />
+      </div>
       <span style="font-size: 24px; color: var(--shu); margin: 0 12px;">→</span>
       <span class="kanji" style="color: var(--sumi-mute); font-size: 14px;">partner</span>
     </div>
@@ -472,11 +482,17 @@ defmodule YokaiSeptetWeb.HomeLive do
   defp rule_visual(%{which: :trick} = assigns) do
     ~H"""
     <div style="display: flex; gap: 4px; align-items: center; justify-content: center;">
-      <.yokai_card suit={:forest} rank={5} width={66} />
-      <.yokai_card suit={:forest} rank={9} width={66} />
-      <.yokai_card suit={:earth} rank={3} width={66} />
+      <div class="card-pop">
+        <.yokai_card suit={:forest} rank={5} width={66} />
+      </div>
+      <div class="card-pop">
+        <.yokai_card suit={:forest} rank={9} width={66} />
+      </div>
+      <div class="card-pop">
+        <.yokai_card suit={:earth} rank={3} width={66} />
+      </div>
       <div style="width: 1px; height: 72px; background: var(--line-strong); margin: 0 6px;"></div>
-      <div style="position: relative;">
+      <div class="card-pop" style="position: relative;">
         <.yokai_card suit={:flame} rank={7} width={66} />
         <div style="position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; background: var(--gold-bright); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-family: var(--kanji); color: var(--sumi); font-weight: 600;">
           勝
@@ -505,7 +521,9 @@ defmodule YokaiSeptetWeb.HomeLive do
     <div style="display: flex; gap: 6px; align-items: flex-start; justify-content: center;">
       <%= for {s, r, p} <- @rows do %>
         <div style="width: 70px; display: flex; flex-direction: column; align-items: center; gap: 6px;">
-          <.yokai_card suit={s} rank={r} width={58} />
+          <div class="card-pop">
+            <.yokai_card suit={s} rank={r} width={58} />
+          </div>
           <div style="height: 12px; display: flex; align-items: center; justify-content: center; gap: 2px;">
             <%= if p > 0 do %>
               <%= for i <- 1..p do %>
