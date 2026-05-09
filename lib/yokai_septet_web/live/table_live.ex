@@ -213,13 +213,15 @@ defmodule YokaiSeptetWeb.TableLive do
           </span>
         </button>
 
-        <div style="display: flex; align-items: center; gap: 24px; font-family: var(--sans); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(244, 236, 216, 0.7);">
-          <span>Round {@game.round}</span>
-          <span style="width: 1px; height: 14px; background: rgba(244,236,216,0.2);"></span>
-          <span>Trick {trick_count(@game)} / {round_max_tricks(@game.num_p)}</span>
-        </div>
+        <div style="display: flex; align-items: center; gap: 28px;">
+          <div style="display: flex; align-items: center; gap: 24px; font-family: var(--sans); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(244, 236, 216, 0.7);">
+            <span>Round {@game.round}</span>
+            <span style="width: 1px; height: 14px; background: rgba(244,236,216,0.2);"></span>
+            <span>Trick {trick_count(@game)} / {round_max_tricks(@game.num_p)}</span>
+          </div>
 
-        <.score_pill players={@game.players} scores={@game.scores} />
+          <.score_pill players={@game.players} scores={@game.scores} />
+        </div>
       </header>
 
       <div style="flex: 1; position: relative; padding: 24px 32px 0;">
@@ -257,7 +259,12 @@ defmodule YokaiSeptetWeb.TableLive do
                 " z-index: #{10 + i};"
               }
             >
-              <.yokai_card suit={t.card.suit} rank={t.card.rank} is_a={t.card.is_a} width={92} />
+              <.yokai_card
+                suit={t.card.suit}
+                rank={t.card.rank}
+                is_a={t.card.is_a}
+                width={116}
+              />
             </div>
           <% end %>
 
@@ -295,6 +302,7 @@ defmodule YokaiSeptetWeb.TableLive do
               legal={@my_legal}
               is_my_turn={@is_my_turn}
               owner="self"
+              large={true}
             />
           <% end %>
           <.player_hand
@@ -415,17 +423,17 @@ defmodule YokaiSeptetWeb.TableLive do
     }>
       <div style={
         "position: relative;" <>
-        " height: #{if @is_left_or_right, do: 80, else: 60}px;" <>
-        " width: #{if @is_left_or_right, do: 100, else: 200}px;" <>
+        " height: #{if @is_left_or_right, do: 96, else: 74}px;" <>
+        " width: #{if @is_left_or_right, do: 120, else: 236}px;" <>
         " display: flex; align-items: center; justify-content: center;"
       }>
         <%= for i <- 0..(@stack_n - 1)//1 do %>
           <% offset = i - @stack_n / 2 %>
-          <% tx = if @is_left_or_right, do: 0, else: offset * 14 %>
-          <% ty = if @is_left_or_right, do: offset * 8, else: 0 %>
+          <% tx = if @is_left_or_right, do: 0, else: offset * 16 %>
+          <% ty = if @is_left_or_right, do: offset * 10, else: 0 %>
           <% rot = if @is_left_or_right, do: 90, else: offset * 3 %>
           <div style={"position: absolute; transform: translate(#{tx}px, #{ty}px) rotate(#{rot}deg); z-index: #{i};"}>
-            <div class="yokai-back" style="width: 36px; height: 50px;">
+            <div class="yokai-back" style="width: 44px; height: 62px;">
               <span style="font-family: var(--kanji); font-size: 10px; opacity: 0.7;">七</span>
             </div>
           </div>
@@ -559,7 +567,7 @@ defmodule YokaiSeptetWeb.TableLive do
         </div>
       </div>
 
-      <div style="display: flex; justify-content: center; gap: 4px; min-height: 130px;">
+      <div style="display: flex; justify-content: center; gap: 4px; min-height: 184px;">
         <%= if @hand == [] do %>
           <div style="color: rgba(244,236,216,0.4); font-style: italic; padding: 40px;">
             Hand is empty
@@ -569,7 +577,7 @@ defmodule YokaiSeptetWeb.TableLive do
             <% playable = c.id in @legal and @is_my_turn %>
             <div
               style={
-                "margin-left: #{if i == 0, do: 0, else: -28}px;" <>
+                "margin-left: #{if i == 0, do: 0, else: -48}px;" <>
                 " transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);" <>
                 " cursor: #{if playable, do: "pointer", else: "not-allowed"};" <>
                 " z-index: #{i};"
@@ -580,7 +588,7 @@ defmodule YokaiSeptetWeb.TableLive do
                 suit={c.suit}
                 rank={c.rank}
                 is_a={c.is_a}
-                width={88}
+                width={128}
                 playable={playable}
                 dimmed={not playable}
                 phx_click={if playable, do: "play_card"}
@@ -638,11 +646,11 @@ defmodule YokaiSeptetWeb.TableLive do
         </button>
       </div>
 
-      <div style="display: flex; justify-content: center; gap: 4px; min-height: 130px;">
+      <div style="display: flex; justify-content: center; gap: 4px; min-height: 160px;">
         <%= for {c, i} <- Enum.with_index(@my_hand) do %>
           <% selected? = c.id in @sel %>
           <div style={
-              "margin-left: #{if i == 0, do: 0, else: -28}px;" <>
+              "margin-left: #{if i == 0, do: 0, else: -38}px;" <>
               " transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);" <>
               " cursor: pointer; z-index: #{i};"
             }>
@@ -650,7 +658,7 @@ defmodule YokaiSeptetWeb.TableLive do
               suit={c.suit}
               rank={c.rank}
               is_a={c.is_a}
-              width={88}
+              width={112}
               selected={selected?}
               phx_click="toggle_pass"
               phx_value_id={c.id}
@@ -950,12 +958,37 @@ defmodule YokaiSeptetWeb.TableLive do
   attr :legal, :list, required: true
   attr :is_my_turn, :boolean, required: true
   attr :owner, :string, required: true
+  attr :large, :boolean, default: false
 
   defp straw_row(assigns) do
-    down_width = if assigns.owner == "self", do: 54, else: 36
-    up_width = if assigns.owner == "self", do: 48, else: 32
-    gap = if assigns.owner == "self", do: 18, else: 10
-    height = if assigns.owner == "self", do: 108, else: 72
+    down_width =
+      cond do
+        assigns.owner == "self" and assigns.large -> 92
+        assigns.owner == "self" -> 76
+        true -> 60
+      end
+
+    up_width =
+      cond do
+        assigns.owner == "self" and assigns.large -> 84
+        assigns.owner == "self" -> 68
+        true -> 54
+      end
+
+    gap =
+      cond do
+        assigns.owner == "self" and assigns.large -> 30
+        assigns.owner == "self" -> 24
+        true -> 16
+      end
+
+    height =
+      cond do
+        assigns.owner == "self" and assigns.large -> 178
+        assigns.owner == "self" -> 148
+        true -> 116
+      end
+
     total_width = down_width * 7 + gap * 6
 
     assigns =
@@ -1043,7 +1076,7 @@ defmodule YokaiSeptetWeb.TableLive do
             suit={@trump_card.suit}
             rank={@trump_card.rank}
             is_a={@trump_card.is_a}
-            width={68}
+            width={82}
           />
         </div>
       </div>
@@ -1206,12 +1239,12 @@ defmodule YokaiSeptetWeb.TableLive do
 
       <.straw_row slots={@slots} legal={[]} is_my_turn={false} owner="self" />
 
-      <div style="display: flex; justify-content: center; gap: 4px; min-height: 130px; margin-top: 8px;">
+      <div style="display: flex; justify-content: center; gap: 4px; min-height: 160px; margin-top: 8px;">
         <%= for {c, i} <- Enum.with_index(@my_hand) do %>
           <% selected? = c.id == @discard_id %>
           <% selectable = not c.is_boss %>
           <div style={
-            "margin-left: #{if i == 0, do: 0, else: -28}px;" <>
+            "margin-left: #{if i == 0, do: 0, else: -38}px;" <>
             " transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);" <>
             " cursor: " <> if(selectable, do: "pointer", else: "not-allowed") <> ";" <>
             " z-index: " <> Integer.to_string(i) <> ";"
@@ -1220,7 +1253,7 @@ defmodule YokaiSeptetWeb.TableLive do
               suit={c.suit}
               rank={c.rank}
               is_a={c.is_a}
-              width={88}
+              width={112}
               selected={selected?}
               dimmed={not selectable}
               phx_click={if selectable, do: "set_discard"}
