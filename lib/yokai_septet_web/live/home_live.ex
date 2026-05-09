@@ -522,7 +522,7 @@ defmodule YokaiSeptetWeb.HomeLive do
       <%= for {s, r, p} <- @rows do %>
         <div style="width: 70px; display: flex; flex-direction: column; align-items: center; gap: 6px;">
           <div class="card-pop">
-            <.yokai_card suit={s} rank={r} width={58} />
+            <.yokai_card suit={s} rank={r} width={70} />
           </div>
           <div style="height: 12px; display: flex; align-items: center; justify-content: center; gap: 2px;">
             <%= if p > 0 do %>
