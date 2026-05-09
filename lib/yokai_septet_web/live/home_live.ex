@@ -377,7 +377,7 @@ defmodule YokaiSeptetWeb.HomeLive do
     ~H"""
     <div class="washi-bg" style="min-height: 100vh;">
       <.top_bar current={:rules} />
-      <main style="max-width: 1100px; margin: 0 auto; padding: 60px 80px;">
+      <main style="max-width: 1240px; margin: 0 auto; padding: 60px 48px;">
         <div class="eyebrow">遊び方</div>
         <h1
           class="kanji"
@@ -389,7 +389,7 @@ defmodule YokaiSeptetWeb.HomeLive do
           A trick-taking game of seven suits, seven Bosses, and the curse of greed.
         </p>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px;">
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 60px;">
           <%= for s <- @sections do %>
             <.rules_section section={s} />
           <% end %>
@@ -409,23 +409,23 @@ defmodule YokaiSeptetWeb.HomeLive do
 
   defp rules_section(assigns) do
     ~H"""
-    <div style="display: grid; grid-template-columns: 60px 1fr; gap: 20px;">
-      <div style="font-size: 36px; color: var(--shu); line-height: 1; font-weight: 600; font-family: var(--sans);">
-        {@section.num}
-      </div>
-      <div>
-        <h2 style="font-size: 22px; margin: 4px 0 12px; font-weight: 500; color: var(--sumi);">
+    <div style={if @section.visual in [:suits, :scoring], do: "grid-column: 1 / -1;", else: ""}>
+      <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 12px;">
+        <div style="font-size: 32px; color: var(--shu); line-height: 1; font-weight: 600; font-family: var(--sans); min-width: 34px;">
+          {@section.num}
+        </div>
+        <h2 style="font-size: 22px; margin: 0; font-weight: 500; color: var(--sumi);">
           {@section.title}
         </h2>
-        <p style={"line-height: 1.7; color: var(--sumi-soft); font-size: 15px; margin: 0;" <> if(@section.visual, do: " margin-bottom: 20px;", else: "")}>
-          {@section.body}
-        </p>
-        <%= if @section.visual do %>
-          <div style="background: rgba(244, 236, 216, 0.5); border: 1px solid var(--line); padding: 24px; border-radius: 4px;">
-            <.rule_visual which={@section.visual} />
-          </div>
-        <% end %>
       </div>
+      <p style={"line-height: 1.7; color: var(--sumi-soft); font-size: 15px; margin: 0;" <> if(@section.visual, do: " margin-bottom: 20px;", else: "")}>
+        {@section.body}
+      </p>
+      <%= if @section.visual do %>
+        <div style="background: rgba(244, 236, 216, 0.5); border: 1px solid var(--line); padding: 24px; border-radius: 4px;">
+          <.rule_visual which={@section.visual} />
+        </div>
+      <% end %>
     </div>
     """
   end
@@ -436,10 +436,10 @@ defmodule YokaiSeptetWeb.HomeLive do
     assigns = assign(assigns, suits: Cards.suits())
 
     ~H"""
-    <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;">
+    <div style="display: flex; gap: 10px; flex-wrap: nowrap; justify-content: center; overflow-x: auto; padding-bottom: 4px;">
       <%= for s <- @suits do %>
         <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-          <.yokai_card suit={s.id} rank={7} width={62} />
+          <.yokai_card suit={s.id} rank={7} width={70} />
           <div style="font-size: 10px; font-family: var(--sans); color: var(--sumi-mute); letter-spacing: 0.2em;">
             {String.upcase(s.name)}
           </div>
@@ -452,7 +452,7 @@ defmodule YokaiSeptetWeb.HomeLive do
   defp rule_visual(%{which: :a_card} = assigns) do
     ~H"""
     <div style="display: flex; justify-content: center;">
-      <.yokai_card suit={:wind} rank="A" is_a={true} width={90} />
+      <.yokai_card suit={:wind} rank="A" is_a={true} width={70} />
     </div>
     """
   end
@@ -460,9 +460,9 @@ defmodule YokaiSeptetWeb.HomeLive do
   defp rule_visual(%{which: :pass} = assigns) do
     ~H"""
     <div style="display: flex; gap: 4px; align-items: center; justify-content: center;">
-      <.yokai_card suit={:forest} rank={6} width={50} />
-      <.yokai_card suit={:mist} rank={3} width={50} />
-      <.yokai_card suit={:earth} rank={4} width={50} />
+      <.yokai_card suit={:forest} rank={6} width={60} />
+      <.yokai_card suit={:mist} rank={3} width={60} />
+      <.yokai_card suit={:earth} rank={4} width={60} />
       <span style="font-size: 24px; color: var(--shu); margin: 0 12px;">→</span>
       <span class="kanji" style="color: var(--sumi-mute); font-size: 14px;">partner</span>
     </div>
@@ -472,12 +472,12 @@ defmodule YokaiSeptetWeb.HomeLive do
   defp rule_visual(%{which: :trick} = assigns) do
     ~H"""
     <div style="display: flex; gap: 4px; align-items: center; justify-content: center;">
-      <.yokai_card suit={:forest} rank={5} width={56} />
-      <.yokai_card suit={:forest} rank={9} width={56} />
-      <.yokai_card suit={:earth} rank={3} width={56} />
-      <div style="width: 1px; height: 60px; background: var(--line-strong); margin: 0 6px;"></div>
+      <.yokai_card suit={:forest} rank={5} width={66} />
+      <.yokai_card suit={:forest} rank={9} width={66} />
+      <.yokai_card suit={:earth} rank={3} width={66} />
+      <div style="width: 1px; height: 72px; background: var(--line-strong); margin: 0 6px;"></div>
       <div style="position: relative;">
-        <.yokai_card suit={:flame} rank={7} width={56} />
+        <.yokai_card suit={:flame} rank={7} width={66} />
         <div style="position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; background: var(--gold-bright); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-family: var(--kanji); color: var(--sumi); font-weight: 600;">
           勝
         </div>
@@ -502,11 +502,11 @@ defmodule YokaiSeptetWeb.HomeLive do
     assigns = assign(assigns, rows: rows)
 
     ~H"""
-    <div style="display: flex; gap: 4px; align-items: center; justify-content: center;">
+    <div style="display: flex; gap: 6px; align-items: flex-start; justify-content: center;">
       <%= for {s, r, p} <- @rows do %>
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-          <.yokai_card suit={s} rank={r} width={50} />
-          <div style="display: flex; gap: 2px;">
+        <div style="width: 70px; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+          <.yokai_card suit={s} rank={r} width={58} />
+          <div style="height: 12px; display: flex; align-items: center; justify-content: center; gap: 2px;">
             <%= if p > 0 do %>
               <%= for i <- 1..p do %>
                 <div
