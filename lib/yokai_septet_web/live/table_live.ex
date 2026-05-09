@@ -582,7 +582,7 @@ defmodule YokaiSeptetWeb.TableLive do
                 " cursor: #{if playable, do: "pointer", else: "not-allowed"};" <>
                 " z-index: #{i};"
               }
-              class={if playable, do: "hand-card-playable", else: ""}
+              class={if playable, do: "card-pop hand-card-playable", else: ""}
             >
               <.yokai_card
                 suit={c.suit}
@@ -649,11 +649,14 @@ defmodule YokaiSeptetWeb.TableLive do
       <div style="display: flex; justify-content: center; gap: 4px; min-height: 160px;">
         <%= for {c, i} <- Enum.with_index(@my_hand) do %>
           <% selected? = c.id in @sel %>
-          <div style={
+          <div
+            class="card-pop"
+            style={
               "margin-left: #{if i == 0, do: 0, else: -38}px;" <>
               " transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);" <>
               " cursor: pointer; z-index: #{i};"
-            }>
+            }
+          >
             <.yokai_card
               suit={c.suit}
               rank={c.rank}
@@ -1011,7 +1014,11 @@ defmodule YokaiSeptetWeb.TableLive do
           <% playable =
             down.card != nil and down.revealed? and @owner == "self" and down.card.id in @legal and
               @is_my_turn %>
-          <div style={"position: absolute; left: #{left}px; bottom: 0; z-index: #{i};"} data-down={i}>
+          <div
+            class={if playable, do: "card-pop card-pop-straw", else: ""}
+            style={"position: absolute; left: #{left}px; bottom: 0; z-index: #{i};"}
+            data-down={i}
+          >
             <%= cond do %>
               <% down.card == nil -> %>
                 <div style={"width: #{@down_width}px; height: #{@down_width * 1.42}px; border: 1px dashed rgba(244,236,216,0.18); border-radius: 6px;"}>
@@ -1042,6 +1049,7 @@ defmodule YokaiSeptetWeb.TableLive do
           <% left = i * (@down_width + @gap) + @down_width + @gap / 2 - @up_width / 2 %>
           <% playable = up != nil and @owner == "self" and up.id in @legal and @is_my_turn %>
           <div
+            class={if playable, do: "card-pop card-pop-straw", else: ""}
             style={"position: absolute; left: #{left}px; top: 0; z-index: #{20 + i}; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.45));"}
             data-up={i}
           >
@@ -1243,12 +1251,15 @@ defmodule YokaiSeptetWeb.TableLive do
         <%= for {c, i} <- Enum.with_index(@my_hand) do %>
           <% selected? = c.id == @discard_id %>
           <% selectable = not c.is_boss %>
-          <div style={
+          <div
+            class={if selectable, do: "card-pop", else: ""}
+            style={
             "margin-left: #{if i == 0, do: 0, else: -38}px;" <>
             " transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);" <>
             " cursor: " <> if(selectable, do: "pointer", else: "not-allowed") <> ";" <>
             " z-index: " <> Integer.to_string(i) <> ";"
-          }>
+          }
+          >
             <.yokai_card
               suit={c.suit}
               rank={c.rank}
