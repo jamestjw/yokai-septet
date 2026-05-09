@@ -1014,8 +1014,9 @@ defmodule YokaiSeptetWeb.TableLive do
           <% playable =
             down.card != nil and down.revealed? and @owner == "self" and down.card.id in @legal and
               @is_my_turn %>
+          <% visible? = down.card != nil and down.revealed? %>
           <div
-            class={if playable, do: "card-pop card-pop-straw", else: ""}
+            class={if visible?, do: "card-pop card-pop-straw", else: ""}
             style={"position: absolute; left: #{left}px; bottom: 0; z-index: #{i};"}
             data-down={i}
           >
@@ -1049,7 +1050,7 @@ defmodule YokaiSeptetWeb.TableLive do
           <% left = i * (@down_width + @gap) + @down_width + @gap / 2 - @up_width / 2 %>
           <% playable = up != nil and @owner == "self" and up.id in @legal and @is_my_turn %>
           <div
-            class={if playable, do: "card-pop card-pop-straw", else: ""}
+            class={if up, do: "card-pop card-pop-straw", else: ""}
             style={"position: absolute; left: #{left}px; top: 0; z-index: #{20 + i}; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.45));"}
             data-up={i}
           >
