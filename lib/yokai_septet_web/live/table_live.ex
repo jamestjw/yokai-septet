@@ -243,22 +243,6 @@ defmodule YokaiSeptetWeb.TableLive do
             <% end %>
           <% end %>
 
-          <%= if @game.trump_card do %>
-            <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 24px;">
-              <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0.85;">
-                <div class="eyebrow" style="color: rgba(244,236,216,0.55);">切札 Trump</div>
-                <div style="transform: rotate(-4deg); filter: drop-shadow(0 6px 12px rgba(0,0,0,0.45));">
-                  <.yokai_card
-                    suit={@game.trump_card.suit}
-                    rank={@game.trump_card.rank}
-                    is_a={@game.trump_card.is_a}
-                    width={68}
-                  />
-                </div>
-              </div>
-            </div>
-          <% end %>
-
           <%= for {t, i} <- Enum.with_index(@game.trick) do %>
             <% seat_i = Enum.find_index(@seat_order, &(&1 == t.player_idx)) %>
             <% tp = Enum.at(@trick_card_positions, seat_i) %>
@@ -321,6 +305,7 @@ defmodule YokaiSeptetWeb.TableLive do
             tricks={Enum.at(@game.tricks_won, @h_idx)}
             bosses={Enum.at(@game.bosses_by_player, @h_idx)}
             is_lead={@game.lead_idx == @h_idx}
+            trump_card={@game.trump_card}
           />
       <% end %>
 
@@ -524,10 +509,13 @@ defmodule YokaiSeptetWeb.TableLive do
   attr :tricks, :integer, required: true
   attr :bosses, :list, required: true
   attr :is_lead, :boolean, required: true
+  attr :trump_card, :map, default: nil
 
   defp player_hand(assigns) do
     ~H"""
     <div style="position: relative; padding: 16px 32px 28px; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.35) 60%);">
+      <.trump_marker trump_card={@trump_card} />
+
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; color: var(--washi);">
         <div style="display: flex; align-items: center; gap: 16px;">
           <div style="width: 36px; height: 36px; background: var(--shu); color: var(--washi); display: flex; align-items: center; justify-content: center; font-family: var(--kanji); font-size: 18px; font-weight: 600; border-radius: 2px;">
@@ -630,6 +618,8 @@ defmodule YokaiSeptetWeb.TableLive do
 
     ~H"""
     <div style="position: relative; padding: 16px 32px 28px; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.35) 60%);">
+      <.trump_marker trump_card={@game.trump_card} />
+
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; color: var(--washi);">
         <div>
           <div class="eyebrow" style="color: rgba(244,236,216,0.55);">Passing phase</div>
@@ -1041,6 +1031,26 @@ defmodule YokaiSeptetWeb.TableLive do
     """
   end
 
+  attr :trump_card, :map, default: nil
+
+  defp trump_marker(assigns) do
+    ~H"""
+    <%= if @trump_card do %>
+      <div style="position: absolute; left: 32px; bottom: 34px; z-index: 15; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0.86;">
+        <div class="eyebrow" style="color: rgba(244,236,216,0.55);">切札 Trump</div>
+        <div style="transform: rotate(-4deg); filter: drop-shadow(0 6px 12px rgba(0,0,0,0.45));">
+          <.yokai_card
+            suit={@trump_card.suit}
+            rank={@trump_card.rank}
+            is_a={@trump_card.is_a}
+            width={68}
+          />
+        </div>
+      </div>
+    <% end %>
+    """
+  end
+
   defp swap_down_card(straw, up_index, side) do
     down_index = if side == :left, do: up_index, else: up_index + 1
 
@@ -1102,6 +1112,8 @@ defmodule YokaiSeptetWeb.TableLive do
 
     ~H"""
     <div style="position: relative; padding: 16px 32px 28px; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.35) 60%);">
+      <.trump_marker trump_card={@game.trump_card} />
+
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; color: var(--washi);">
         <div>
           <div class="eyebrow" style="color: rgba(244,236,216,0.55);">Setup phase · 2-player</div>
