@@ -367,7 +367,7 @@ defmodule YokaiSeptetWeb.HomeLive do
         num: "8",
         title: "Victory",
         body:
-          "First team (or player) to 7 points wins the game. A typical game runs several rounds — each round resets, but score persists.",
+          "First team (or player) to 7 points wins the game. A typical game runs several rounds.",
         visual: nil
       }
     ]
