@@ -285,6 +285,7 @@ defmodule YokaiSeptetWeb.CardComponents do
     height = assigns.width * 1.42
     is_boss = assigns.rank == 7
     corner_size = assigns.width * 0.18
+    corner_offset = max(assigns.width * 0.09, 7)
     mark_size = assigns.width * 0.58
     label = if assigns.is_a, do: "A", else: Cards.rank_label(assigns.rank)
     label_font = if assigns.is_a, do: "var(--serif)", else: "var(--sans)"
@@ -312,6 +313,7 @@ defmodule YokaiSeptetWeb.CardComponents do
         suit_data: s,
         is_boss: is_boss,
         corner_size: corner_size,
+        corner_offset: corner_offset,
         mark_size: mark_size,
         label: label,
         label_font: label_font,
@@ -338,7 +340,7 @@ defmodule YokaiSeptetWeb.CardComponents do
         </div>
       <% end %>
 
-      <div style={"position: absolute; top: #{@width * 0.06}px; left: #{@width * 0.08}px; display: flex; align-items: flex-start; gap: #{@width * 0.04}px;"}>
+      <div style={"position: absolute; top: #{@corner_offset}px; left: #{@corner_offset}px; display: flex; align-items: flex-start; gap: #{@width * 0.04}px;"}>
         <div>
           <div style={"font-family: #{@label_font}; font-size: #{@corner_size}px; font-weight: 700; line-height: 1; letter-spacing: -0.02em;"}>
             {@label}
@@ -355,7 +357,7 @@ defmodule YokaiSeptetWeb.CardComponents do
         </div>
       </div>
 
-      <div style={"position: absolute; bottom: #{@width * 0.06}px; right: #{@width * 0.08}px; transform: rotate(180deg); display: flex; align-items: flex-start; gap: #{@width * 0.04}px;"}>
+      <div style={"position: absolute; bottom: #{@corner_offset}px; right: #{@corner_offset}px; transform: rotate(180deg); display: flex; align-items: flex-start; gap: #{@width * 0.04}px;"}>
         <div>
           <div style={"font-family: #{@label_font}; font-size: #{@corner_size}px; font-weight: 700; line-height: 1; letter-spacing: -0.02em;"}>
             {@label}
