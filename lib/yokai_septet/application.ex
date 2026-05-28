@@ -11,9 +11,8 @@ defmodule YokaiSeptet.Application do
       YokaiSeptetWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:yokai_septet, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: YokaiSeptet.PubSub},
-      # Start a worker by calling: YokaiSeptet.Worker.start_link(arg)
-      # {YokaiSeptet.Worker, arg},
-      # Start to serve requests, typically the last entry
+      {Registry, keys: :unique, name: YokaiSeptet.RoomRegistry},
+      {DynamicSupervisor, strategy: :one_for_one, name: YokaiSeptet.RoomSupervisor},
       YokaiSeptetWeb.Endpoint
     ]
 

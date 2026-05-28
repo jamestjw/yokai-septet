@@ -238,44 +238,70 @@ defmodule YokaiSeptet.Game do
     %{state | pending_passes: pp}
   end
 
+  @doc "Multiplayer: set a single seat's pending pass directly (skips the human-selection UI)."
+  def set_pending_pass(state, seat_idx, card_ids) when is_list(card_ids) do
+    if length(card_ids) == 3 do
+      %{state | pending_passes: Map.put(state.pending_passes, seat_idx, card_ids)}
+    else
+      state
+    end
+  end
+
+  @doc "Multiplayer: all seats already have pending_passes — apply the swap and start play."
+  def finalize_passes(state) do
+    if map_size(state.pending_passes) != state.num_p do
+      state
+    else
+      apply_pending_passes(state)
+    end
+  end
+
   def confirm_pass(state) do
     if length(state.human_pass_selection) != 3 do
       state
     else
       human_idx = Enum.find_index(state.players, & &1.is_human)
-      all_passes = Map.put(state.pending_passes, human_idx, state.human_pass_selection)
 
-      new_hands =
-        Enum.reduce(0..(state.num_p - 1), state.hands, fn from, hands ->
-          ids = Map.get(all_passes, from, [])
-          src = Enum.at(hands, from)
-          passed = Enum.filter(src, &(&1.id in ids))
-
-          to =
-            if state.num_p == 4 do
-              Enum.at(state.players, from).partner
-            else
-              rem(from + 1, state.num_p)
-            end
-
-          hands
-          |> List.replace_at(from, Enum.reject(src, &(&1.id in ids)))
-          |> then(fn h -> List.replace_at(h, to, Enum.at(h, to) ++ passed) end)
-        end)
-
-      sorted = Enum.map(new_hands, &Cards.sort_hand/1)
-      lead = pick_round_leader(state, sorted)
-
-      %{
+      state = %{
         state
-        | hands: sorted,
-          pending_passes: %{},
-          human_pass_selection: [],
-          lead_idx: lead,
-          current_idx: lead,
-          phase: :playing
+        | pending_passes: Map.put(state.pending_passes, human_idx, state.human_pass_selection)
       }
+
+      apply_pending_passes(state)
     end
+  end
+
+  defp apply_pending_passes(state) do
+    new_hands =
+      Enum.reduce(0..(state.num_p - 1), state.hands, fn from, hands ->
+        ids = Map.get(state.pending_passes, from, [])
+        src = Enum.at(hands, from)
+        passed = Enum.filter(src, &(&1.id in ids))
+
+        to =
+          if state.num_p == 4 do
+            Enum.at(state.players, from).partner
+          else
+            rem(from + 1, state.num_p)
+          end
+
+        hands
+        |> List.replace_at(from, Enum.reject(src, &(&1.id in ids)))
+        |> then(fn h -> List.replace_at(h, to, Enum.at(h, to) ++ passed) end)
+      end)
+
+    sorted = Enum.map(new_hands, &Cards.sort_hand/1)
+    lead = pick_round_leader(state, sorted)
+
+    %{
+      state
+      | hands: sorted,
+        pending_passes: %{},
+        human_pass_selection: [],
+        lead_idx: lead,
+        current_idx: lead,
+        phase: :playing
+    }
   end
 
   # Choose the leader for the first trick of a round.

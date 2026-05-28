@@ -45,6 +45,12 @@ defmodule YokaiSeptetWeb.HomeLive do
     {:noreply, push_navigate(socket, to: ~p"/play/#{socket.assigns.mode}")}
   end
 
+  def handle_event("nav", %{"to" => "lobby_new"}, socket),
+    do: {:noreply, push_navigate(socket, to: ~p"/lobby/new")}
+
+  def handle_event("nav", %{"to" => "lobby_join"}, socket),
+    do: {:noreply, push_navigate(socket, to: ~p"/lobby/join")}
+
   # ---------------- render ----------------
 
   @impl true
@@ -213,13 +219,19 @@ defmodule YokaiSeptetWeb.HomeLive do
             </div>
           </div>
 
-          <div style="display: flex; gap: 16px; margin-top: 40px; align-items: center;">
+          <div style="display: flex; gap: 16px; margin-top: 40px; align-items: center; flex-wrap: wrap;">
             <button
               class="btn btn-shu"
               style="padding: 16px 36px; font-size: 16px; letter-spacing: 0.1em;"
               phx-click="start"
             >
-              <span class="kanji" style="font-size: 18px;">始</span> Begin Round
+              <span class="kanji" style="font-size: 18px;">始</span> Play vs AI
+            </button>
+            <button class="btn btn-ghost" phx-click="nav" phx-value-to="lobby_new">
+              <span class="kanji">創</span> Host Room
+            </button>
+            <button class="btn btn-ghost" phx-click="nav" phx-value-to="lobby_join">
+              <span class="kanji">入</span> Join Room
             </button>
             <button class="btn btn-ghost" phx-click="nav" phx-value-to="rules">How to Play</button>
           </div>

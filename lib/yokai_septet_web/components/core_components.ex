@@ -97,7 +97,7 @@ defmodule YokaiSeptetWeb.CoreComponents do
 
     assigns =
       assign_new(assigns, :class, fn ->
-        ["btn", Map.fetch!(variants, assigns[:variant])]
+        ["btn", Map.fetch!(variants, Map.get(assigns, :variant))]
       end)
 
     if rest[:href] || rest[:navigate] || rest[:patch] do
@@ -200,7 +200,7 @@ defmodule YokaiSeptetWeb.CoreComponents do
   def input(%{type: "checkbox"} = assigns) do
     assigns =
       assign_new(assigns, :checked, fn ->
-        Phoenix.HTML.Form.normalize_value("checkbox", assigns[:value])
+        Phoenix.HTML.Form.normalize_value("checkbox", Map.get(assigns, :value))
       end)
 
     ~H"""

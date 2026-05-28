@@ -7,22 +7,81 @@ defmodule YokaiSeptetWeb.TableLive do
   use YokaiSeptetWeb, :live_view
 
   import YokaiSeptetWeb.CardComponents
-  alias YokaiSeptet.{Cards, Game}
+  alias YokaiSeptet.{Cards, Game, GameRoom, Lobby}
 
   @ai_delay 750
   @trick_delay 1400
 
   @impl true
+  def mount(%{"code" => code}, session, socket) do
+    code = String.upcase(code)
+    player_id = session["player_id"]
+
+    case Lobby.lookup(code) do
+      {:error, _} ->
+        {:ok,
+         socket
+         |> put_flash(:error, "Room not found.")
+         |> push_navigate(to: ~p"/"), layout: false}
+
+      {:ok, _pid} ->
+        if connected?(socket) do
+          Phoenix.PubSub.subscribe(YokaiSeptet.PubSub, "room:#{code}")
+          GameRoom.register_view(code, player_id, self())
+        end
+
+        {:ok, snap} = GameRoom.snapshot(code)
+
+        cond do
+          snap.phase != :playing ->
+            {:ok, push_navigate(socket, to: ~p"/lobby/#{code}"), layout: false}
+
+          true ->
+            my_seat = seat_for(snap.seats, player_id)
+
+            if my_seat == nil do
+              {:ok,
+               socket
+               |> put_flash(:error, "You're not seated in this room.")
+               |> push_navigate(to: ~p"/lobby/#{code}"), layout: false}
+            else
+              {:ok,
+               socket
+               |> assign(
+                 room?: true,
+                 code: code,
+                 player_id: player_id,
+                 my_seat: my_seat,
+                 pass_sel: [],
+                 game: snap.game,
+                 seats: snap.seats
+               ), layout: false}
+            end
+        end
+    end
+  end
+
   def mount(%{"mode" => mode}, _session, socket) do
     mode = if mode in ["4p", "3p", "2p"], do: mode, else: "4p"
 
     socket =
       socket
-      |> assign(game: Game.new(mode) |> Game.start_round())
+      |> assign(
+        room?: false,
+        my_seat: nil,
+        game: Game.new(mode) |> Game.start_round()
+      )
       |> maybe_schedule_passing()
       |> maybe_schedule_ai()
 
     {:ok, socket, layout: false}
+  end
+
+  defp seat_for(seats, player_id) do
+    Enum.find_index(seats, fn
+      {:human, ^player_id, _, _} -> true
+      _ -> false
+    end)
   end
 
   # ---------- events ----------
@@ -30,10 +89,16 @@ defmodule YokaiSeptetWeb.TableLive do
   @impl true
   def handle_event("nav_home", _, socket), do: {:noreply, push_navigate(socket, to: ~p"/")}
 
+  def handle_event("play_card", %{"id" => id}, %{assigns: %{room?: true}} = socket) do
+    card_id = String.to_integer(id)
+    GameRoom.play_card(socket.assigns.code, socket.assigns.player_id, card_id)
+    {:noreply, socket}
+  end
+
   def handle_event("play_card", %{"id" => id}, socket) do
     card_id = String.to_integer(id)
     g = socket.assigns.game
-    human = human_idx(g)
+    human = human_idx(socket.assigns, g)
 
     case Game.play_card(g, human, card_id) do
       {:invalid, _} ->
@@ -48,9 +113,28 @@ defmodule YokaiSeptetWeb.TableLive do
     end
   end
 
+  def handle_event("toggle_pass", %{"id" => id}, %{assigns: %{room?: true}} = socket) do
+    card_id = String.to_integer(id)
+    sel = socket.assigns.pass_sel
+
+    new_sel =
+      cond do
+        card_id in sel -> Enum.reject(sel, &(&1 == card_id))
+        length(sel) >= 3 -> sel
+        true -> sel ++ [card_id]
+      end
+
+    {:noreply, assign(socket, pass_sel: new_sel)}
+  end
+
   def handle_event("toggle_pass", %{"id" => id}, socket) do
     card_id = String.to_integer(id)
     {:noreply, assign(socket, game: Game.toggle_pass_card(socket.assigns.game, card_id))}
+  end
+
+  def handle_event("confirm_pass", _params, %{assigns: %{room?: true}} = socket) do
+    GameRoom.submit_pass(socket.assigns.code, socket.assigns.player_id, socket.assigns.pass_sel)
+    {:noreply, assign(socket, pass_sel: [])}
   end
 
   def handle_event("confirm_pass", _params, socket) do
@@ -87,6 +171,11 @@ defmodule YokaiSeptetWeb.TableLive do
     {:noreply, socket |> assign(game: g) |> maybe_schedule_ai()}
   end
 
+  def handle_event("next_round", _params, %{assigns: %{room?: true}} = socket) do
+    GameRoom.next_round(socket.assigns.code, socket.assigns.player_id)
+    {:noreply, socket}
+  end
+
   def handle_event("next_round", _params, socket) do
     g = Game.next_round(socket.assigns.game)
 
@@ -107,6 +196,10 @@ defmodule YokaiSeptetWeb.TableLive do
   def handle_info(:resolve_trick, socket) do
     g = Game.resolve_trick(socket.assigns.game)
     {:noreply, socket |> assign(game: g) |> maybe_schedule_ai()}
+  end
+
+  def handle_info({:room_updated, snap}, socket) do
+    {:noreply, assign(socket, game: snap.game, seats: snap.seats)}
   end
 
   def handle_info(:ai_play, socket) do
@@ -167,14 +260,29 @@ defmodule YokaiSeptetWeb.TableLive do
     socket
   end
 
-  defp human_idx(g), do: Enum.find_index(g.players, & &1.is_human)
+  defp human_idx(assigns, g) do
+    case assigns.my_seat do
+      idx when is_integer(idx) -> idx
+      _ -> Enum.find_index(g.players, & &1.is_human) || 0
+    end
+  end
 
   # ---------- render ----------
 
   @impl true
   def render(assigns) do
     g = assigns.game
-    h_idx = human_idx(g)
+    h_idx = human_idx(assigns, g)
+
+    # In room mode, splice the LiveView-local pass selection into the game
+    # snapshot so the pass_panel highlights the right cards.
+    g =
+      if assigns.room? do
+        %{g | human_pass_selection: assigns.pass_sel}
+      else
+        g
+      end
+
     my_hand_in_hand = Enum.at(g.hands, h_idx)
     my_effective = Game.effective_hand(g, h_idx)
     my_legal = Cards.playable_cards(my_effective, g.lead_suit)
@@ -186,6 +294,7 @@ defmodule YokaiSeptetWeb.TableLive do
 
     assigns =
       assign(assigns,
+        game: g,
         h_idx: h_idx,
         my_hand: my_hand_in_hand,
         my_effective: my_effective,
@@ -292,7 +401,7 @@ defmodule YokaiSeptetWeb.TableLive do
 
       <%= cond do %>
         <% @game.phase == :passing -> %>
-          <.pass_panel game={@game} my_hand={@my_hand} />
+          <.pass_panel game={@game} my_hand={@my_hand} h_idx={@h_idx} />
         <% @game.phase == :swapping -> %>
           <.swap_panel game={@game} my_hand={@my_hand} h_idx={@h_idx} />
         <% true -> %>
@@ -604,6 +713,7 @@ defmodule YokaiSeptetWeb.TableLive do
 
   attr :game, :map, required: true
   attr :my_hand, :list, required: true
+  attr :h_idx, :integer, required: true
 
   defp pass_panel(assigns) do
     sel = assigns.game.human_pass_selection
@@ -611,10 +721,11 @@ defmodule YokaiSeptetWeb.TableLive do
 
     pass_target =
       if assigns.game.num_p == 4 do
-        partner = Enum.at(assigns.game.players, 0).partner
+        partner = Enum.at(assigns.game.players, assigns.h_idx).partner
         Enum.at(assigns.game.players, partner).name
       else
-        Enum.at(assigns.game.players, 1).name
+        target = rem(assigns.h_idx + 1, assigns.game.num_p)
+        Enum.at(assigns.game.players, target).name
       end
 
     assigns =

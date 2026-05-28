@@ -4,6 +4,7 @@ defmodule YokaiSeptetWeb.Router do
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
+    plug YokaiSeptetWeb.Plugs.GuestId
     plug :fetch_live_flash
     plug :put_root_layout, html: {YokaiSeptetWeb.Layouts, :root}
     plug :protect_from_forgery
@@ -26,6 +27,10 @@ defmodule YokaiSeptetWeb.Router do
 
     live "/", HomeLive, :home
     live "/rules", HomeLive, :rules
+    live "/lobby/new", LobbyNewLive, :new
+    live "/lobby/join", LobbyJoinLive, :join
+    live "/lobby/:code", RoomLive, :show
+    live "/play/room/:code", TableLive, :room
     live "/play/:mode", TableLive, :play
   end
 end
