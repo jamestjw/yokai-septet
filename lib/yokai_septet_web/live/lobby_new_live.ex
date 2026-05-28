@@ -59,11 +59,12 @@ defmodule YokaiSeptetWeb.LobbyNewLive do
           Create a Room
         </h1>
 
-        <form phx-submit="create">
+        <form id="new-room-form" phx-submit="create">
           <label style="display: block; font-family: var(--sans); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sumi-mute); margin-bottom: 8px;">
             Your name
           </label>
           <input
+            id="new-room-name"
             type="text"
             name="name"
             value={@name}
@@ -102,7 +103,9 @@ defmodule YokaiSeptetWeb.LobbyNewLive do
           </p>
 
           <%= if @error do %>
-            <p style="color: var(--shu); font-size: 13px; margin-bottom: 16px;">{@error}</p>
+            <p id="new-room-error" style="color: var(--shu); font-size: 13px; margin-bottom: 16px;">
+              {@error}
+            </p>
           <% end %>
 
           <div style="display: flex; gap: 12px;">
