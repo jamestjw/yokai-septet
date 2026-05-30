@@ -419,7 +419,14 @@ defmodule YokaiSeptet.GameRoom do
       {:human, _pid, name, :disconnected} ->
         seats = List.replace_at(state.seats, seat_idx, {:ai, name})
         timers = Map.delete(state.grace_timers, seat_idx)
-        state = %{state | seats: seats, grace_timers: timers} |> broadcast()
+
+        state =
+          %{state | seats: seats, grace_timers: timers}
+          |> maybe_finalize_setup()
+          |> maybe_finalize_passes()
+          |> maybe_schedule_ai()
+          |> broadcast()
+
         {:noreply, state}
 
       _ ->
@@ -450,7 +457,6 @@ defmodule YokaiSeptet.GameRoom do
 
         state =
           %{state | monitors: monitors, seats: seats, grace_timers: timers}
-          |> maybe_finalize_setup()
           |> maybe_finalize_passes()
           |> maybe_schedule_ai()
           |> broadcast()
@@ -546,7 +552,6 @@ defmodule YokaiSeptet.GameRoom do
             else
               case Enum.at(state.seats, idx) do
                 {:ai, _} -> Game.auto_setup(acc, idx)
-                {:human, _, _, :disconnected} -> Game.auto_setup(acc, idx)
                 _ -> acc
               end
             end
