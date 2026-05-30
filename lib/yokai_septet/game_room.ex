@@ -238,7 +238,8 @@ defmodule YokaiSeptet.GameRoom do
   def handle_call({:set_discard, player_id, card_id}, _from, state) do
     with :playing <- state.phase,
          %{mode: "2p", phase: :swapping} <- state.game,
-         seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id) do
+         seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id),
+         false <- setup_confirmed?(state.game, seat_idx) do
       state =
         %{state | game: Game.set_setup_discard(state.game, seat_idx, card_id)} |> broadcast()
 
@@ -251,7 +252,8 @@ defmodule YokaiSeptet.GameRoom do
   def handle_call({:set_swap, player_id, up_index, side}, _from, state) do
     with :playing <- state.phase,
          %{mode: "2p", phase: :swapping} <- state.game,
-         seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id) do
+         seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id),
+         false <- setup_confirmed?(state.game, seat_idx) do
       state =
         %{state | game: Game.set_setup_swap_choice(state.game, seat_idx, up_index, side)}
         |> broadcast()
@@ -265,7 +267,8 @@ defmodule YokaiSeptet.GameRoom do
   def handle_call({:clear_swap, player_id, up_index}, _from, state) do
     with :playing <- state.phase,
          %{mode: "2p", phase: :swapping} <- state.game,
-         seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id) do
+         seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id),
+         false <- setup_confirmed?(state.game, seat_idx) do
       state =
         %{state | game: Game.clear_setup_swap_choice(state.game, seat_idx, up_index)}
         |> broadcast()
@@ -279,7 +282,8 @@ defmodule YokaiSeptet.GameRoom do
   def handle_call({:set_swap_keep, player_id, up_index, keep}, _from, state) do
     with :playing <- state.phase,
          %{mode: "2p", phase: :swapping} <- state.game,
-         seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id) do
+         seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id),
+         false <- setup_confirmed?(state.game, seat_idx) do
       state =
         %{state | game: Game.set_setup_swap_keep(state.game, seat_idx, up_index, keep)}
         |> broadcast()
@@ -310,6 +314,7 @@ defmodule YokaiSeptet.GameRoom do
     with :playing <- state.phase,
          %{phase: :passing} <- state.game,
          seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id),
+         false <- pass_submitted?(state.game, seat_idx),
          3 <- length(card_ids),
          true <- valid_pass?(state.game, seat_idx, card_ids) do
       game = Game.set_pending_pass(state.game, seat_idx, card_ids)
@@ -576,6 +581,9 @@ defmodule YokaiSeptet.GameRoom do
     hand_ids = Enum.at(game.hands, seat_idx) |> Enum.map(& &1.id)
     Enum.all?(card_ids, &(&1 in hand_ids))
   end
+
+  defp setup_confirmed?(game, seat_idx), do: Map.get(game.setup_confirmed, seat_idx, false)
+  defp pass_submitted?(game, seat_idx), do: Map.has_key?(game.pending_passes, seat_idx)
 
   defp first_empty(seats), do: Enum.find_index(seats, &match?({:empty}, &1))
 

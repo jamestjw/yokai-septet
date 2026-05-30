@@ -751,8 +751,10 @@ defmodule YokaiSeptetWeb.TableLive do
   attr :h_idx, :integer, required: true
 
   defp pass_panel(assigns) do
-    sel = assigns.game.human_pass_selection
+    confirmed? = Map.has_key?(assigns.game.pending_passes, assigns.h_idx)
+    sel = Map.get(assigns.game.pending_passes, assigns.h_idx, assigns.game.human_pass_selection)
     can_confirm = length(sel) == 3
+    ready_count = map_size(assigns.game.pending_passes)
 
     pass_target =
       if assigns.game.num_p == 4 do
@@ -767,6 +769,8 @@ defmodule YokaiSeptetWeb.TableLive do
       assign(assigns,
         sel: sel,
         can_confirm: can_confirm,
+        confirmed?: confirmed?,
+        ready_count: ready_count,
         pass_target: pass_target
       )
 
@@ -778,29 +782,48 @@ defmodule YokaiSeptetWeb.TableLive do
         <div>
           <div class="eyebrow" style="color: rgba(244,236,216,0.55);">Passing phase</div>
           <div style="font-size: 15px; margin-top: 4px;">
-            Choose 3 cards to pass to
-            <span style="color: var(--gold-bright); font-family: var(--kanji);">{@pass_target}</span>
+            <%= if @confirmed? do %>
+              Pass locked in. Waiting for other players.
+              <span style="color: var(--gold-bright); font-family: var(--kanji);">
+                ({@ready_count}/{@game.num_p} ready)
+              </span>
+            <% else %>
+              Choose 3 cards to pass to
+              <span style="color: var(--gold-bright); font-family: var(--kanji);">
+                {@pass_target}
+              </span>
+            <% end %>
           </div>
         </div>
         <button
           class="btn btn-shu"
           phx-click="confirm_pass"
-          disabled={not @can_confirm}
-          style={"opacity: #{if @can_confirm, do: 1, else: 0.4}; cursor: #{if @can_confirm, do: "pointer", else: "not-allowed"};"}
+          disabled={@confirmed? or not @can_confirm}
+          style={"opacity: #{if @can_confirm and not @confirmed?, do: 1, else: 0.4}; cursor: #{if @can_confirm and not @confirmed?, do: "pointer", else: "not-allowed"};"}
         >
-          <span class="kanji">送</span> Confirm pass ({length(@sel)}/3)
+          <%= if @confirmed? do %>
+            <span class="kanji">待</span> Waiting
+          <% else %>
+            <span class="kanji">送</span> Confirm pass ({length(@sel)}/3)
+          <% end %>
         </button>
       </div>
+
+      <%= if @confirmed? do %>
+        <div style="margin: 0 auto 12px; max-width: 620px; padding: 10px 14px; border: 1px solid rgba(212,175,55,0.45); background: rgba(212,175,55,0.1); color: var(--gold-bright); font-size: 12px; font-family: var(--sans); letter-spacing: 0.08em; text-transform: uppercase; text-align: center;">
+          Your cards are locked. The round begins when every player has confirmed their pass.
+        </div>
+      <% end %>
 
       <div style="display: flex; justify-content: center; gap: 4px; min-height: 160px;">
         <%= for {c, i} <- Enum.with_index(@my_hand) do %>
           <% selected? = c.id in @sel %>
           <div
-            class="card-pop"
+            class={if @confirmed?, do: "", else: "card-pop"}
             style={
               "margin-left: #{if i == 0, do: 0, else: -38}px;" <>
               " transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);" <>
-              " cursor: pointer; z-index: #{i};"
+              " cursor: #{if @confirmed?, do: "not-allowed", else: "pointer"}; z-index: #{i};"
             }
           >
             <.yokai_card
@@ -809,7 +832,8 @@ defmodule YokaiSeptetWeb.TableLive do
               is_a={c.is_a}
               width={112}
               selected={selected?}
-              phx_click="toggle_pass"
+              dimmed={@confirmed? and not selected?}
+              phx_click={if @confirmed?, do: nil, else: "toggle_pass"}
               phx_value_id={c.id}
             />
           </div>
@@ -1272,6 +1296,7 @@ defmodule YokaiSeptetWeb.TableLive do
 
   defp swap_panel(assigns) do
     g = assigns.game
+    confirmed? = Map.get(g.setup_confirmed, assigns.h_idx, false)
     discard_id = Map.get(g.setup_discards, assigns.h_idx)
     swaps = Map.get(g.setup_swap_decisions, assigns.h_idx, %{})
     straw = Enum.at(g.straw, assigns.h_idx)
@@ -1288,12 +1313,23 @@ defmodule YokaiSeptetWeb.TableLive do
 
     can_confirm = discard_id != nil and not unresolved?
 
+    waiting_for =
+      g.players
+      |> Enum.with_index()
+      |> Enum.find_value(fn {player, idx} ->
+        if idx != assigns.h_idx and not Map.get(g.setup_confirmed, idx, false) do
+          player.name
+        end
+      end)
+
     assigns =
       assign(assigns,
         discard_id: discard_id,
         swaps: swaps,
         boss_slots: boss_slots,
         can_confirm: can_confirm,
+        confirmed?: confirmed?,
+        waiting_for: waiting_for || "the other player",
         slots: straw,
         unresolved?: unresolved?
       )
@@ -1306,10 +1342,18 @@ defmodule YokaiSeptetWeb.TableLive do
         <div>
           <div class="eyebrow" style="color: rgba(244,236,216,0.55);">Setup phase · 2-player</div>
           <div style="font-size: 15px; margin-top: 4px;">
-            Pick one non-Boss card to <span style="color: var(--shu); font-family: var(--kanji);">discard</span>,
-            then optionally swap any face-up Boss with the left or right card beneath it.
+            <%= if @confirmed? do %>
+              Setup locked in. Waiting for
+              <span style="color: var(--gold-bright); font-family: var(--kanji);">
+                {@waiting_for}
+              </span>
+              to confirm.
+            <% else %>
+              Pick one non-Boss card to <span style="color: var(--shu); font-family: var(--kanji);">discard</span>,
+              then optionally swap any face-up Boss with the left or right card beneath it.
+            <% end %>
           </div>
-          <%= if @boss_slots != [] do %>
+          <%= if @boss_slots != [] and not @confirmed? do %>
             <div style="margin-top: 8px; font-size: 12px; color: rgba(244,236,216,0.55); font-family: var(--sans); letter-spacing: 0.08em;">
               Choose left or right beneath a Boss. If both cards are Bosses, choose which one remains face-up.
             </div>
@@ -1318,10 +1362,14 @@ defmodule YokaiSeptetWeb.TableLive do
         <button
           class="btn btn-shu"
           phx-click="confirm_setup"
-          disabled={not @can_confirm}
-          style={"opacity: #{if @can_confirm, do: 1, else: 0.4}; cursor: #{if @can_confirm, do: "pointer", else: "not-allowed"};"}
+          disabled={@confirmed? or not @can_confirm}
+          style={"opacity: #{if @can_confirm and not @confirmed?, do: 1, else: 0.4}; cursor: #{if @can_confirm and not @confirmed?, do: "pointer", else: "not-allowed"};"}
         >
-          <span class="kanji">送</span> Confirm
+          <%= if @confirmed? do %>
+            <span class="kanji">待</span> Waiting
+          <% else %>
+            <span class="kanji">送</span> Confirm
+          <% end %>
         </button>
       </div>
 
@@ -1345,6 +1393,7 @@ defmodule YokaiSeptetWeb.TableLive do
                     phx-click="set_swap"
                     phx-value-up={i}
                     phx-value-side="left"
+                    disabled={@confirmed?}
                     style={swap_button_style(decision, :left)}
                   >
                     Left {if left_card && left_card.is_boss, do: "Boss", else: "card"}
@@ -1353,6 +1402,7 @@ defmodule YokaiSeptetWeb.TableLive do
                     phx-click="set_swap"
                     phx-value-up={i}
                     phx-value-side="right"
+                    disabled={@confirmed?}
                     style={swap_button_style(decision, :right)}
                   >
                     Right {if right_card && right_card.is_boss, do: "Boss", else: "card"}
@@ -1360,6 +1410,7 @@ defmodule YokaiSeptetWeb.TableLive do
                   <button
                     phx-click="clear_swap"
                     phx-value-up={i}
+                    disabled={@confirmed?}
                     style="background: transparent; border: 1px solid rgba(244,236,216,0.18); color: rgba(244,236,216,0.55); padding: 4px 8px; font-size: 10px; cursor: pointer;"
                   >
                     Keep
@@ -1372,6 +1423,7 @@ defmodule YokaiSeptetWeb.TableLive do
                       phx-click="set_swap_keep"
                       phx-value-up={i}
                       phx-value-keep="up"
+                      disabled={@confirmed?}
                       style={keep_button_style(decision, :up)}
                     >
                       Current
@@ -1380,6 +1432,7 @@ defmodule YokaiSeptetWeb.TableLive do
                       phx-click="set_swap_keep"
                       phx-value-up={i}
                       phx-value-keep="down"
+                      disabled={@confirmed?}
                       style={keep_button_style(decision, :down)}
                     >
                       Hidden
@@ -1397,7 +1450,7 @@ defmodule YokaiSeptetWeb.TableLive do
       <div style="display: flex; justify-content: center; gap: 4px; min-height: 160px; margin-top: 8px;">
         <%= for {c, i} <- Enum.with_index(@my_hand) do %>
           <% selected? = c.id == @discard_id %>
-          <% selectable = not c.is_boss %>
+          <% selectable = not c.is_boss and not @confirmed? %>
           <div
             class={if selectable, do: "card-pop", else: ""}
             style={
@@ -1413,7 +1466,7 @@ defmodule YokaiSeptetWeb.TableLive do
               is_a={c.is_a}
               width={112}
               selected={selected?}
-              dimmed={not selectable}
+              dimmed={not selectable and not selected?}
               phx_click={if selectable, do: "set_discard"}
               phx_value_id={c.id}
             />

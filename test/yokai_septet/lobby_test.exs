@@ -100,6 +100,10 @@ defmodule YokaiSeptet.LobbyTest do
     assert {:ok, room_pid} = Lobby.lookup(code)
 
     host_discard = non_boss(:earth, 2)
+
+    alternate_host_discard =
+      Cards.build_deck() |> Enum.find(&(not &1.is_boss and &1.id != host_discard.id))
+
     guest_discard = non_boss(:mist, 3)
     up_boss = boss(:forest)
     hidden_card = non_boss(:river, 4)
@@ -115,7 +119,7 @@ defmodule YokaiSeptet.LobbyTest do
       game = %{
         state.game
         | phase: :swapping,
-          hands: [[host_discard], [guest_discard]],
+          hands: [[host_discard, alternate_host_discard], [guest_discard]],
           straw: [host_straw, empty_straw()],
           setup_discards: %{},
           setup_swap_decisions: %{},
@@ -131,6 +135,15 @@ defmodule YokaiSeptet.LobbyTest do
 
     assert {:ok, snap} = GameRoom.snapshot(code)
     assert snap.game.phase == :swapping
+    assert snap.game.setup_discards[0] == host_discard.id
+    assert snap.game.setup_swap_decisions[0][0].side == :left
+
+    assert {:error, :invalid} = GameRoom.set_discard(code, "host-id", alternate_host_discard.id)
+    assert {:error, :invalid} = GameRoom.set_swap(code, "host-id", 0, :right)
+
+    assert {:ok, snap} = GameRoom.snapshot(code)
+    assert snap.game.setup_discards[0] == host_discard.id
+    assert snap.game.setup_swap_decisions[0][0].side == :left
 
     assert :ok = GameRoom.set_discard(code, "guest-id", guest_discard.id)
     assert :ok = GameRoom.confirm_setup(code, "guest-id")
@@ -147,6 +160,30 @@ defmodule YokaiSeptet.LobbyTest do
            |> hd()
            |> Map.fetch!(:card)
            |> Map.get(:id) == up_boss.id
+  end
+
+  test "multiplayer pass submit is final while waiting for other players" do
+    {:ok, code} = Lobby.create_room("3p", "host-id", "Host")
+    cleanup_room(code)
+
+    assert {:ok, 1} = GameRoom.join(code, "guest-id", "Guest")
+    assert :ok = GameRoom.fill_with_ai(code, "host-id")
+    assert :ok = GameRoom.start_game(code, "host-id")
+    assert {:ok, snap} = GameRoom.snapshot(code)
+
+    assert snap.game.phase == :passing
+
+    first_pass = snap.game.hands |> Enum.at(0) |> Enum.take(3) |> Enum.map(& &1.id)
+
+    second_pass =
+      snap.game.hands |> Enum.at(0) |> Enum.drop(3) |> Enum.take(3) |> Enum.map(& &1.id)
+
+    assert :ok = GameRoom.submit_pass(code, "host-id", first_pass)
+    assert {:error, :invalid} = GameRoom.submit_pass(code, "host-id", second_pass)
+
+    assert {:ok, snap} = GameRoom.snapshot(code)
+    assert snap.game.phase == :passing
+    assert snap.game.pending_passes[0] == first_pass
   end
 
   defp cleanup_room(code) do
