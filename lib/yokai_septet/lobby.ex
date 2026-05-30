@@ -13,9 +13,9 @@ defmodule YokaiSeptet.Lobby do
   @doc """
   Creates a new room. Returns `{:ok, code}`.
 
-  Modes supported: `"4p"`, `"3p"`.
+  Modes supported: `"4p"`, `"3p"`, `"2p"`.
   """
-  def create_room(mode, host_id, host_name, attempts \\ 0) when mode in ["4p", "3p"] do
+  def create_room(mode, host_id, host_name, attempts \\ 0) when mode in ["4p", "3p", "2p"] do
     code = generate_code()
 
     case DynamicSupervisor.start_child(

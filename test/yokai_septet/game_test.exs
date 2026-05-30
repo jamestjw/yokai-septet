@@ -344,7 +344,7 @@ defmodule YokaiSeptet.GameTest do
         trump_suit: :wind,
         hands: [[discard], [non_boss(:earth, 3)]],
         straw: [straw0, empty_straw()],
-        human_discard_id: discard.id
+        setup_discards: %{0 => discard.id}
     }
 
     state = Game.set_swap_choice(state, 0, :left)
@@ -360,6 +360,34 @@ defmodule YokaiSeptet.GameTest do
            |> hd()
            |> Map.fetch!(:card)
            |> Map.get(:id) == up_boss.id
+  end
+
+  test "2p multiplayer setup waits for both players before play starts" do
+    state =
+      Game.new("2p")
+      |> Map.update!(:players, fn players ->
+        Enum.map(players, &%{&1 | is_human: true})
+      end)
+      |> Game.start_round()
+
+    p0_discard = state.hands |> Enum.at(0) |> Enum.find(&(not &1.is_boss))
+    p1_discard = state.hands |> Enum.at(1) |> Enum.find(&(not &1.is_boss))
+
+    state =
+      state
+      |> Game.set_setup_discard(0, p0_discard.id)
+      |> Game.confirm_setup(0)
+
+    assert state.phase == :swapping
+    assert state.setup_confirmed == %{0 => true}
+
+    state =
+      state
+      |> Game.set_setup_discard(1, p1_discard.id)
+      |> Game.confirm_setup(1)
+
+    assert state.phase == :playing
+    assert Enum.map(state.discard, & &1.id) == [p0_discard.id, p1_discard.id]
   end
 
   # ----- helpers -----

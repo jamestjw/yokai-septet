@@ -143,16 +143,35 @@ defmodule YokaiSeptetWeb.TableLive do
   end
 
   # 2p: human picks the card to discard.
+  def handle_event("set_discard", %{"id" => id}, %{assigns: %{room?: true}} = socket) do
+    card_id = String.to_integer(id)
+    GameRoom.set_discard(socket.assigns.code, socket.assigns.player_id, card_id)
+    {:noreply, socket}
+  end
+
   def handle_event("set_discard", %{"id" => id}, socket) do
     card_id = String.to_integer(id)
     {:noreply, assign(socket, game: Game.set_pass_discard(socket.assigns.game, card_id))}
   end
 
   # 2p: human chooses a covered card under a face-up Boss to swap with.
+  def handle_event("set_swap", %{"up" => up, "side" => side}, %{assigns: %{room?: true}} = socket) do
+    up = String.to_integer(up)
+    side = String.to_existing_atom(side)
+    GameRoom.set_swap(socket.assigns.code, socket.assigns.player_id, up, side)
+    {:noreply, socket}
+  end
+
   def handle_event("set_swap", %{"up" => up, "side" => side}, socket) do
     up = String.to_integer(up)
     side = String.to_existing_atom(side)
     {:noreply, assign(socket, game: Game.set_swap_choice(socket.assigns.game, up, side))}
+  end
+
+  def handle_event("clear_swap", %{"up" => up}, %{assigns: %{room?: true}} = socket) do
+    up = String.to_integer(up)
+    GameRoom.clear_swap(socket.assigns.code, socket.assigns.player_id, up)
+    {:noreply, socket}
   end
 
   def handle_event("clear_swap", %{"up" => up}, socket) do
@@ -160,10 +179,26 @@ defmodule YokaiSeptetWeb.TableLive do
     {:noreply, assign(socket, game: Game.clear_swap_choice(socket.assigns.game, up))}
   end
 
+  def handle_event(
+        "set_swap_keep",
+        %{"up" => up, "keep" => keep},
+        %{assigns: %{room?: true}} = socket
+      ) do
+    up = String.to_integer(up)
+    keep = String.to_existing_atom(keep)
+    GameRoom.set_swap_keep(socket.assigns.code, socket.assigns.player_id, up, keep)
+    {:noreply, socket}
+  end
+
   def handle_event("set_swap_keep", %{"up" => up, "keep" => keep}, socket) do
     up = String.to_integer(up)
     keep = String.to_existing_atom(keep)
     {:noreply, assign(socket, game: Game.set_swap_keep(socket.assigns.game, up, keep))}
+  end
+
+  def handle_event("confirm_setup", _params, %{assigns: %{room?: true}} = socket) do
+    GameRoom.confirm_setup(socket.assigns.code, socket.assigns.player_id)
+    {:noreply, socket}
   end
 
   def handle_event("confirm_setup", _params, socket) do
@@ -1237,8 +1272,8 @@ defmodule YokaiSeptetWeb.TableLive do
 
   defp swap_panel(assigns) do
     g = assigns.game
-    discard_id = g.human_discard_id
-    swaps = g.human_swap_decisions
+    discard_id = Map.get(g.setup_discards, assigns.h_idx)
+    swaps = Map.get(g.setup_swap_decisions, assigns.h_idx, %{})
     straw = Enum.at(g.straw, assigns.h_idx)
 
     boss_slots =

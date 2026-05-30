@@ -8,7 +8,7 @@ defmodule YokaiSeptet.GameRoom do
     * `{:ai, name}`
     * `{:human, player_id, name, :connected | :disconnected}`
 
-  The GenServer drives AI plays (and AI passing) for `:ai` seats and for
+  The GenServer drives AI plays, AI setup, and AI passing for `:ai` seats and for
   disconnected human seats. State changes are broadcast on
   `"room:<code>"` via `Phoenix.PubSub`.
 
@@ -45,6 +45,19 @@ defmodule YokaiSeptet.GameRoom do
   def start_game(code, player_id), do: call(code, {:start_game, player_id})
   def play_card(code, player_id, card_id), do: call(code, {:play_card, player_id, card_id})
 
+  def set_discard(code, player_id, card_id),
+    do: call(code, {:set_discard, player_id, card_id})
+
+  def set_swap(code, player_id, up_index, side),
+    do: call(code, {:set_swap, player_id, up_index, side})
+
+  def clear_swap(code, player_id, up_index), do: call(code, {:clear_swap, player_id, up_index})
+
+  def set_swap_keep(code, player_id, up_index, keep),
+    do: call(code, {:set_swap_keep, player_id, up_index, keep})
+
+  def confirm_setup(code, player_id), do: call(code, {:confirm_setup, player_id})
+
   def submit_pass(code, player_id, card_ids),
     do: call(code, {:submit_pass, player_id, card_ids})
 
@@ -56,11 +69,12 @@ defmodule YokaiSeptet.GameRoom do
   # --------------- GenServer ---------------
 
   @impl true
-  def init({code, mode, host_id, host_name}) when mode in ["4p", "3p"] do
+  def init({code, mode, host_id, host_name}) when mode in ["4p", "3p", "2p"] do
     num_p =
       case mode do
         "4p" -> 4
         "3p" -> 3
+        "2p" -> 2
       end
 
     seats =
@@ -195,11 +209,11 @@ defmodule YokaiSeptet.GameRoom do
           |> override_players(state.seats, state.mode)
           |> Game.start_round()
 
-        # For multiplayer: fill AI passes up front; humans submit via UI.
-        game = Game.fill_ai_passes(game)
+        game = maybe_fill_ai_passes(game)
 
         state =
           %{state | phase: :playing, game: game}
+          |> maybe_finalize_setup()
           |> maybe_finalize_passes()
           |> maybe_schedule_ai()
           |> broadcast()
@@ -218,6 +232,77 @@ defmodule YokaiSeptet.GameRoom do
       {:reply, :ok, state}
     else
       _ -> {:reply, {:error, :not_your_turn}, state}
+    end
+  end
+
+  def handle_call({:set_discard, player_id, card_id}, _from, state) do
+    with :playing <- state.phase,
+         %{mode: "2p", phase: :swapping} <- state.game,
+         seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id) do
+      state =
+        %{state | game: Game.set_setup_discard(state.game, seat_idx, card_id)} |> broadcast()
+
+      {:reply, :ok, state}
+    else
+      _ -> {:reply, {:error, :invalid}, state}
+    end
+  end
+
+  def handle_call({:set_swap, player_id, up_index, side}, _from, state) do
+    with :playing <- state.phase,
+         %{mode: "2p", phase: :swapping} <- state.game,
+         seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id) do
+      state =
+        %{state | game: Game.set_setup_swap_choice(state.game, seat_idx, up_index, side)}
+        |> broadcast()
+
+      {:reply, :ok, state}
+    else
+      _ -> {:reply, {:error, :invalid}, state}
+    end
+  end
+
+  def handle_call({:clear_swap, player_id, up_index}, _from, state) do
+    with :playing <- state.phase,
+         %{mode: "2p", phase: :swapping} <- state.game,
+         seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id) do
+      state =
+        %{state | game: Game.clear_setup_swap_choice(state.game, seat_idx, up_index)}
+        |> broadcast()
+
+      {:reply, :ok, state}
+    else
+      _ -> {:reply, {:error, :invalid}, state}
+    end
+  end
+
+  def handle_call({:set_swap_keep, player_id, up_index, keep}, _from, state) do
+    with :playing <- state.phase,
+         %{mode: "2p", phase: :swapping} <- state.game,
+         seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id) do
+      state =
+        %{state | game: Game.set_setup_swap_keep(state.game, seat_idx, up_index, keep)}
+        |> broadcast()
+
+      {:reply, :ok, state}
+    else
+      _ -> {:reply, {:error, :invalid}, state}
+    end
+  end
+
+  def handle_call({:confirm_setup, player_id}, _from, state) do
+    with :playing <- state.phase,
+         %{mode: "2p", phase: :swapping} <- state.game,
+         seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id) do
+      state =
+        %{state | game: Game.confirm_setup(state.game, seat_idx)}
+        |> maybe_finalize_setup()
+        |> maybe_schedule_ai()
+        |> broadcast()
+
+      {:reply, :ok, state}
+    else
+      _ -> {:reply, {:error, :invalid}, state}
     end
   end
 
@@ -244,9 +329,11 @@ defmodule YokaiSeptet.GameRoom do
         game =
           state.game
           |> Game.next_round()
-          |> Game.fill_ai_passes()
+          |> maybe_fill_ai_passes()
 
-        state = %{state | game: game} |> maybe_schedule_ai() |> broadcast()
+        state =
+          %{state | game: game} |> maybe_finalize_setup() |> maybe_schedule_ai() |> broadcast()
+
         {:reply, :ok, state}
 
       true ->
@@ -363,6 +450,7 @@ defmodule YokaiSeptet.GameRoom do
 
         state =
           %{state | monitors: monitors, seats: seats, grace_timers: timers}
+          |> maybe_finalize_setup()
           |> maybe_finalize_passes()
           |> maybe_schedule_ai()
           |> broadcast()
@@ -440,6 +528,37 @@ defmodule YokaiSeptet.GameRoom do
     end
   end
 
+  defp maybe_finalize_setup(state) do
+    g = state.game
+
+    cond do
+      g == nil ->
+        state
+
+      g.mode != "2p" or g.phase != :swapping ->
+        state
+
+      true ->
+        game =
+          Enum.reduce(0..(g.num_p - 1), g, fn idx, acc ->
+            if Map.get(acc.setup_confirmed, idx) do
+              acc
+            else
+              case Enum.at(state.seats, idx) do
+                {:ai, _} -> Game.auto_setup(acc, idx)
+                {:human, _, _, :disconnected} -> Game.auto_setup(acc, idx)
+                _ -> acc
+              end
+            end
+          end)
+
+        %{state | game: game}
+    end
+  end
+
+  defp maybe_fill_ai_passes(%{mode: "2p"} = game), do: game
+  defp maybe_fill_ai_passes(game), do: Game.fill_ai_passes(game)
+
   defp seat_should_be_auto?(state, seat_idx) do
     case Enum.at(state.seats, seat_idx) do
       {:ai, _} -> true
@@ -493,6 +612,17 @@ defmodule YokaiSeptet.GameRoom do
   end
 
   defp override_players(game, seats, "3p") do
+    players =
+      Enum.with_index(seats)
+      |> Enum.map(fn {seat, idx} ->
+        {name, is_human, player_id} = seat_player(seat, idx)
+        %{name: name, team: idx, is_human: is_human, player_id: player_id}
+      end)
+
+    %{game | players: players}
+  end
+
+  defp override_players(game, seats, "2p") do
     players =
       Enum.with_index(seats)
       |> Enum.map(fn {seat, idx} ->

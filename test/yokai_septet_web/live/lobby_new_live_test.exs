@@ -34,6 +34,29 @@ defmodule YokaiSeptetWeb.LobbyNewLiveTest do
     |> cleanup_room()
   end
 
+  test "can create a two-player room", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/lobby/new")
+
+    assert has_element?(view, ~s(button[phx-value-mode="2p"]))
+
+    view
+    |> element(~s(button[phx-value-mode="2p"]))
+    |> render_click()
+
+    view
+    |> element("#new-room-form")
+    |> render_submit(%{"name" => "Yamato"})
+
+    {path, _flash} = assert_redirect(view)
+    assert path =~ ~r|^/lobby/[A-HJ-NP-Z2-9]{6}\?name=Yamato$|
+
+    code = room_code_from_path(path)
+    assert {:ok, snap} = YokaiSeptet.GameRoom.snapshot(code)
+    assert snap.mode == "2p"
+
+    cleanup_room(code)
+  end
+
   defp room_code_from_path(path) do
     path
     |> URI.parse()

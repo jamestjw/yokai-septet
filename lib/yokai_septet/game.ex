@@ -60,9 +60,9 @@ defmodule YokaiSeptet.Game do
       straw: nil,
       # 2p: discarded card per player (set aside; not playable).
       discard: [],
-      # 2p :swapping state: human's chosen discard id and swap decisions.
-      human_discard_id: nil,
-      human_swap_decisions: %{},
+      # 2p :swapping state, keyed by player index.
+      setup_discards: %{},
+      setup_swap_decisions: %{},
       setup_confirmed: %{},
       game_winner_team: nil
     }
@@ -175,8 +175,8 @@ defmodule YokaiSeptet.Game do
         last_trick_info: nil,
         round_log: [],
         discard: [],
-        human_discard_id: nil,
-        human_swap_decisions: %{},
+        setup_discards: %{},
+        setup_swap_decisions: %{},
         setup_confirmed: %{},
         phase: :swapping
     }
@@ -321,89 +321,169 @@ defmodule YokaiSeptet.Game do
 
   @doc "Toggle the human's pending discard card during 2p :swapping."
   def set_pass_discard(state, card_id) do
-    %{state | human_discard_id: card_id}
+    set_setup_discard(state, human_idx(state), card_id)
+  end
+
+  @doc "Set a player's pending discard card during 2p :swapping."
+  def set_setup_discard(state, player_idx, card_id) do
+    %{state | setup_discards: Map.put(state.setup_discards, player_idx, card_id)}
   end
 
   @doc "Choose which covered card a face-up Boss should swap with during 2p setup."
   def set_swap_choice(state, up_index, side) when side in [:left, :right] do
+    set_setup_swap_choice(state, human_idx(state), up_index, side)
+  end
+
+  @doc "Choose which covered card a face-up Boss should swap with during 2p setup."
+  def set_setup_swap_choice(state, player_idx, up_index, side) when side in [:left, :right] do
     decision = %{side: side, keep: nil}
-    %{state | human_swap_decisions: Map.put(state.human_swap_decisions, up_index, decision)}
+
+    swaps =
+      Map.update(state.setup_swap_decisions, player_idx, %{up_index => decision}, fn decisions ->
+        Map.put(decisions, up_index, decision)
+      end)
+
+    %{state | setup_swap_decisions: swaps}
   end
 
   def clear_swap_choice(state, up_index) do
-    %{state | human_swap_decisions: Map.delete(state.human_swap_decisions, up_index)}
+    clear_setup_swap_choice(state, human_idx(state), up_index)
+  end
+
+  def clear_setup_swap_choice(state, player_idx, up_index) do
+    swaps =
+      Map.update(state.setup_swap_decisions, player_idx, %{}, fn decisions ->
+        Map.delete(decisions, up_index)
+      end)
+
+    %{state | setup_swap_decisions: swaps}
   end
 
   @doc "Choose which Boss remains face-up when a 2p setup swap reveals a Boss under a Boss."
   def set_swap_keep(state, up_index, keep) when keep in [:up, :down] do
-    decisions =
-      Map.update(state.human_swap_decisions, up_index, %{side: :left, keep: keep}, fn decision ->
-        Map.put(decision, :keep, keep)
-      end)
+    set_setup_swap_keep(state, human_idx(state), up_index, keep)
+  end
 
-    %{state | human_swap_decisions: decisions}
+  @doc "Choose which Boss remains face-up when a 2p setup swap reveals a Boss under a Boss."
+  def set_setup_swap_keep(state, player_idx, up_index, keep) when keep in [:up, :down] do
+    decisions =
+      Map.update(
+        state.setup_swap_decisions,
+        player_idx,
+        %{up_index => %{side: :left, keep: keep}},
+        fn decisions ->
+          Map.update(decisions, up_index, %{side: :left, keep: keep}, fn decision ->
+            Map.put(decision, :keep, keep)
+          end)
+        end
+      )
+
+    %{state | setup_swap_decisions: decisions}
   end
 
   @doc "Confirm 2p setup for the human; AI auto-decides; advance to :playing."
   def confirm_setup(state) do
+    confirm_setup(state, human_idx(state))
+  end
+
+  @doc "Confirm 2p setup for a player; starts play once every player is confirmed."
+  def confirm_setup(state, player_idx) do
     cond do
       state.mode != "2p" ->
         state
 
-      state.human_discard_id == nil ->
+      Map.get(state.setup_discards, player_idx) == nil ->
         state
 
       true ->
-        h_idx = Enum.find_index(state.players, & &1.is_human)
-        human_hand = Enum.at(state.hands, h_idx)
-        discard = Enum.find(human_hand, &(&1.id == state.human_discard_id))
+        player_hand = Enum.at(state.hands, player_idx)
+        discard_id = Map.fetch!(state.setup_discards, player_idx)
+        discard = Enum.find(player_hand, &(&1.id == discard_id))
 
         cond do
           discard == nil -> state
           discard.is_boss -> state
-          unresolved_boss_swap?(state, h_idx) -> state
-          true -> do_confirm_setup(state, h_idx, discard)
+          unresolved_boss_swap?(state, player_idx) -> state
+          true -> maybe_confirm_setup(state, player_idx)
         end
     end
   end
 
+  @doc "Auto-confirm 2p setup for an AI or disconnected player."
+  def auto_setup(state, player_idx) do
+    hand = Enum.at(state.hands, player_idx)
+    discard = Enum.min_by(Enum.reject(hand, & &1.is_boss), & &1.suit_value)
+
+    state
+    |> set_setup_discard(player_idx, discard.id)
+    |> confirm_setup(player_idx)
+  end
+
   defp unresolved_boss_swap?(state, player_idx) do
     straw = Enum.at(state.straw, player_idx)
+    decisions = Map.get(state.setup_swap_decisions, player_idx, %{})
 
-    Enum.any?(state.human_swap_decisions, fn {up_index, decision} ->
+    Enum.any?(decisions, fn {up_index, decision} ->
       up = Enum.at(straw.ups, up_index)
       down = swap_down_card(straw, up_index, decision.side)
       up && down && up.is_boss && down.is_boss && is_nil(decision.keep)
     end)
   end
 
-  defp do_confirm_setup(state, h_idx, human_discard) do
-    # Apply human discard.
-    new_hand_h = Enum.reject(Enum.at(state.hands, h_idx), &(&1.id == human_discard.id))
+  defp maybe_confirm_setup(state, player_idx) do
+    state = %{state | setup_confirmed: Map.put(state.setup_confirmed, player_idx, true)}
 
-    # Apply human swaps.
-    new_straw_h = apply_swaps(Enum.at(state.straw, h_idx), state.human_swap_decisions)
+    state =
+      Enum.reduce(0..(state.num_p - 1), state, fn idx, acc ->
+        player = Enum.at(acc.players, idx)
 
-    # AI: discard lowest non-boss; never swap.
-    ai_idx = if h_idx == 0, do: 1, else: 0
-    ai_hand = Enum.at(state.hands, ai_idx)
-    ai_discard = Enum.min_by(Enum.reject(ai_hand, & &1.is_boss), & &1.suit_value)
-    new_hand_ai = Enum.reject(ai_hand, &(&1.id == ai_discard.id))
+        if player.is_human or Map.get(acc.setup_confirmed, idx) do
+          acc
+        else
+          auto_confirm_setup(acc, idx)
+        end
+      end)
+
+    if map_size(state.setup_confirmed) == state.num_p do
+      apply_confirmed_setup(state)
+    else
+      state
+    end
+  end
+
+  defp auto_confirm_setup(state, player_idx) do
+    hand = Enum.at(state.hands, player_idx)
+    discard = Enum.min_by(Enum.reject(hand, & &1.is_boss), & &1.suit_value)
+
+    state
+    |> set_setup_discard(player_idx, discard.id)
+    |> then(&%{&1 | setup_confirmed: Map.put(&1.setup_confirmed, player_idx, true)})
+  end
+
+  defp apply_confirmed_setup(state) do
+    discards_by_idx =
+      Enum.map(0..(state.num_p - 1), fn idx ->
+        discard_id = Map.fetch!(state.setup_discards, idx)
+        discard = Enum.find(Enum.at(state.hands, idx), &(&1.id == discard_id))
+        {idx, discard}
+      end)
 
     new_hands =
-      [nil, nil]
-      |> List.replace_at(h_idx, Cards.sort_hand(new_hand_h))
-      |> List.replace_at(ai_idx, Cards.sort_hand(new_hand_ai))
+      Enum.reduce(discards_by_idx, state.hands, fn {idx, discard}, hands ->
+        hand = Enum.at(hands, idx)
+        List.replace_at(hands, idx, Cards.sort_hand(Enum.reject(hand, &(&1.id == discard.id))))
+      end)
 
     new_straw =
-      [nil, nil]
-      |> List.replace_at(h_idx, new_straw_h)
-      |> List.replace_at(ai_idx, Enum.at(state.straw, ai_idx))
+      Enum.reduce(0..(state.num_p - 1), state.straw, fn idx, straws ->
+        decisions = Map.get(state.setup_swap_decisions, idx, %{})
+        List.replace_at(straws, idx, apply_swaps(Enum.at(straws, idx), decisions))
+      end)
 
     discards =
-      [nil, nil]
-      |> List.replace_at(h_idx, human_discard)
-      |> List.replace_at(ai_idx, ai_discard)
+      discards_by_idx
+      |> Enum.sort_by(fn {idx, _discard} -> idx end)
+      |> Enum.map(fn {_idx, discard} -> discard end)
 
     leader = pick_round_leader_2p(state, new_hands)
 
@@ -412,13 +492,16 @@ defmodule YokaiSeptet.Game do
       | hands: new_hands,
         straw: new_straw,
         discard: discards,
-        human_discard_id: nil,
-        human_swap_decisions: %{},
+        setup_discards: %{},
+        setup_swap_decisions: %{},
+        setup_confirmed: %{},
         lead_idx: leader,
         current_idx: leader,
         phase: :playing
     }
   end
+
+  defp human_idx(state), do: Enum.find_index(state.players, & &1.is_human) || 0
 
   defp apply_swaps(straw, decisions) do
     Enum.reduce(decisions, straw, fn {up_index, decision}, acc ->

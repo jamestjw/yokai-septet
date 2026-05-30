@@ -19,7 +19,7 @@ defmodule YokaiSeptetWeb.LobbyNewLive do
   end
 
   @impl true
-  def handle_event("set_mode", %{"mode" => m}, socket) when m in ["4p", "3p"],
+  def handle_event("set_mode", %{"mode" => m}, socket) when m in ["4p", "3p", "2p"],
     do: {:noreply, assign(socket, mode: m)}
 
   def handle_event("update_name", %{"value" => name}, socket),
@@ -78,8 +78,8 @@ defmodule YokaiSeptetWeb.LobbyNewLive do
           <label style="display: block; font-family: var(--sans); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sumi-mute); margin-bottom: 8px;">
             Mode
           </label>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 28px;">
-            <%= for {id, label, sub} <- [{"4p", "Four Players", "Teams of two"}, {"3p", "Three Players", "Free for all"}] do %>
+          <div style="display: grid; gap: 8px; margin-bottom: 28px;">
+            <%= for {id, label, sub} <- [{"4p", "Four Players", "Teams of two"}, {"3p", "Three Players", "Free for all"}, {"2p", "Two Players", "Pocket duel"}] do %>
               <button
                 type="button"
                 phx-click="set_mode"
@@ -97,10 +97,6 @@ defmodule YokaiSeptetWeb.LobbyNewLive do
               </button>
             <% end %>
           </div>
-
-          <p style="font-size: 12px; color: var(--sumi-mute); margin-bottom: 20px; line-height: 1.5;">
-            Two-player multiplayer is not supported yet — play the AI mode for that.
-          </p>
 
           <%= if @error do %>
             <p id="new-room-error" style="color: var(--shu); font-size: 13px; margin-bottom: 16px;">
