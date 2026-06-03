@@ -127,7 +127,10 @@ defmodule YokaiSeptet.Game do
   end
 
   defp deal_team(num_players) do
-    deck = Enum.shuffle(Cards.build_deck())
+    {trump, deck} =
+      Cards.build_deck()
+      |> Enum.shuffle()
+      |> draw_non_boss_trump()
 
     per_player =
       case num_players do
@@ -135,29 +138,34 @@ defmodule YokaiSeptet.Game do
         3 -> 16
       end
 
-    {hands, rest} =
+    {hands, _rest} =
       Enum.reduce(0..(num_players - 1), {[], deck}, fn _, {acc, remaining} ->
         {hand, tail} = Enum.split(remaining, per_player)
         {[hand | acc], tail}
       end)
 
-    [trump | _] = rest
     {Enum.reverse(hands), trump, trump.suit}
+  end
+
+  defp draw_non_boss_trump(deck) do
+    trump = deck |> Enum.reject(& &1.is_boss) |> Enum.random()
+    {trump, Enum.reject(deck, &(&1.id == trump.id))}
   end
 
   # ----- 2p deal -----
 
   defp start_round_2p(state) do
-    deck = Enum.shuffle(Cards.build_deck())
+    {trump_card, deck} =
+      Cards.build_deck()
+      |> Enum.shuffle()
+      |> draw_non_boss_trump()
 
     # Per player: 7 face-down + 6 face-up + 11 hand = 24. Two players = 48.
-    # The 49th card is the face-up trump.
     {p0_fd, deck} = Enum.split(deck, 7)
     {p0_fu, deck} = Enum.split(deck, 6)
     {p1_fd, deck} = Enum.split(deck, 7)
     {p1_fu, deck} = Enum.split(deck, 6)
-    {p0_hand, deck} = Enum.split(deck, 11)
-    {p1_hand, [trump_card]} = Enum.split(deck, 11)
+    {p0_hand, p1_hand} = Enum.split(deck, 11)
 
     straw0 = build_straw(p0_fd, p0_fu)
     straw1 = build_straw(p1_fd, p1_fu)

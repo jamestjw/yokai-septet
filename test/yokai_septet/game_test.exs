@@ -31,6 +31,15 @@ defmodule YokaiSeptet.GameTest do
     end
   end
 
+  test "start_round never chooses a boss yokai as trump" do
+    for mode <- ["4p", "3p", "2p"] do
+      state = Game.new(mode) |> Game.start_round()
+
+      assert state.trump_card != nil
+      refute state.trump_card.is_boss
+    end
+  end
+
   # ----- Step 1 (greed loss boss redistribution) -----
 
   test "4p greed loss redistributes unplayed bosses to the winning team" do
@@ -208,8 +217,9 @@ defmodule YokaiSeptet.GameTest do
       assert face_down == 7
     end)
 
-    # Trump card is the 49th, distinct from any straw or hand card.
+    # Trump card is distinct from any straw or hand card and cannot be a boss.
     assert state.trump_card != nil
+    refute state.trump_card.is_boss
 
     all_dealt =
       List.flatten(state.hands) ++
