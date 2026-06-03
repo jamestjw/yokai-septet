@@ -354,14 +354,23 @@ defmodule YokaiSeptet.Game do
 
   @doc "Choose which covered card a face-up Boss should swap with during 2p setup."
   def set_setup_swap_choice(state, player_idx, up_index, side) when side in [:left, :right] do
-    decision = %{side: side, keep: nil}
+    if locked_boss_swap?(state, player_idx, up_index) do
+      state
+    else
+      decision = %{side: side, keep: nil}
 
-    swaps =
-      Map.update(state.setup_swap_decisions, player_idx, %{up_index => decision}, fn decisions ->
-        Map.put(decisions, up_index, decision)
-      end)
+      swaps =
+        Map.update(
+          state.setup_swap_decisions,
+          player_idx,
+          %{up_index => decision},
+          fn decisions ->
+            Map.put(decisions, up_index, decision)
+          end
+        )
 
-    %{state | setup_swap_decisions: swaps}
+      %{state | setup_swap_decisions: swaps}
+    end
   end
 
   def clear_swap_choice(state, up_index) do
@@ -369,12 +378,16 @@ defmodule YokaiSeptet.Game do
   end
 
   def clear_setup_swap_choice(state, player_idx, up_index) do
-    swaps =
-      Map.update(state.setup_swap_decisions, player_idx, %{}, fn decisions ->
-        Map.delete(decisions, up_index)
-      end)
+    if locked_boss_swap?(state, player_idx, up_index) do
+      state
+    else
+      swaps =
+        Map.update(state.setup_swap_decisions, player_idx, %{}, fn decisions ->
+          Map.delete(decisions, up_index)
+        end)
 
-    %{state | setup_swap_decisions: swaps}
+      %{state | setup_swap_decisions: swaps}
+    end
   end
 
   @doc "Choose which Boss remains face-up when a 2p setup swap reveals a Boss under a Boss."
@@ -446,6 +459,17 @@ defmodule YokaiSeptet.Game do
       down = swap_down_card(straw, up_index, decision.side)
       up && down && up.is_boss && down.is_boss && is_nil(decision.keep)
     end)
+  end
+
+  defp locked_boss_swap?(state, player_idx, up_index) do
+    with %{side: side} <-
+           state.setup_swap_decisions |> Map.get(player_idx, %{}) |> Map.get(up_index),
+         straw when not is_nil(straw) <- Enum.at(state.straw || [], player_idx),
+         down when not is_nil(down) <- swap_down_card(straw, up_index, side) do
+      down.is_boss
+    else
+      _ -> false
+    end
   end
 
   defp maybe_confirm_setup(state, player_idx) do

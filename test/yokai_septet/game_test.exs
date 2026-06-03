@@ -384,6 +384,12 @@ defmodule YokaiSeptet.GameTest do
     state = Game.set_swap_choice(state, 0, :left)
     assert Game.confirm_setup(state).phase == :swapping
 
+    state = Game.set_swap_choice(state, 0, :right)
+    assert state.setup_swap_decisions[0][0].side == :left
+
+    state = Game.clear_swap_choice(state, 0)
+    assert state.setup_swap_decisions[0][0].side == :left
+
     state = Game.set_swap_keep(state, 0, :down) |> Game.confirm_setup()
     assert state.phase == :playing
     assert Enum.at(state.straw, 0).ups |> hd() |> Map.get(:id) == down_boss.id

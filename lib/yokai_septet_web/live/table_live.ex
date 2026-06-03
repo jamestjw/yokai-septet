@@ -1384,8 +1384,8 @@ defmodule YokaiSeptetWeb.TableLive do
         <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap;">
           <%= for {card, i} <- @boss_slots do %>
             <% decision = Map.get(@swaps, i) %>
-            <% left_card = swap_down_card(@slots, i, :left) %>
-            <% right_card = swap_down_card(@slots, i, :right) %>
+            <% selected_down = if decision, do: swap_down_card(@slots, i, decision.side), else: nil %>
+            <% boss_revealed? = selected_down != nil and selected_down.is_boss %>
             <div style="background: rgba(26,20,16,0.6); border: 1px solid rgba(244,236,216,0.18); padding: 8px; border-radius: 4px; display: flex; align-items: center; gap: 10px;">
               <.yokai_card suit={card.suit} rank={card.rank} width={44} />
               <div style="display: flex; flex-direction: column; gap: 6px;">
@@ -1394,50 +1394,60 @@ defmodule YokaiSeptetWeb.TableLive do
                     phx-click="set_swap"
                     phx-value-up={i}
                     phx-value-side="left"
-                    disabled={@confirmed?}
+                    disabled={@confirmed? or (boss_revealed? and decision.side != :left)}
                     style={swap_button_style(decision, :left)}
                   >
-                    Left {if left_card && left_card.is_boss, do: "Boss", else: "card"}
+                    Left Card
                   </button>
                   <button
                     phx-click="set_swap"
                     phx-value-up={i}
                     phx-value-side="right"
-                    disabled={@confirmed?}
+                    disabled={@confirmed? or (boss_revealed? and decision.side != :right)}
                     style={swap_button_style(decision, :right)}
                   >
-                    Right {if right_card && right_card.is_boss, do: "Boss", else: "card"}
+                    Right Card
                   </button>
                   <button
                     phx-click="clear_swap"
                     phx-value-up={i}
-                    disabled={@confirmed?}
+                    disabled={@confirmed? or boss_revealed?}
                     style="background: transparent; border: 1px solid rgba(244,236,216,0.18); color: rgba(244,236,216,0.55); padding: 4px 8px; font-size: 10px; cursor: pointer;"
                   >
                     Keep
                   </button>
                 </div>
-                <%= if decision && swap_down_card(@slots, i, decision.side) && swap_down_card(@slots, i, decision.side).is_boss do %>
-                  <div style="display: flex; gap: 6px; align-items: center; font-size: 10px; color: rgba(244,236,216,0.55); font-family: var(--sans); text-transform: uppercase; letter-spacing: 0.08em;">
-                    Face-up:
-                    <button
-                      phx-click="set_swap_keep"
-                      phx-value-up={i}
-                      phx-value-keep="up"
-                      disabled={@confirmed?}
-                      style={keep_button_style(decision, :up)}
-                    >
-                      Current
-                    </button>
-                    <button
-                      phx-click="set_swap_keep"
-                      phx-value-up={i}
-                      phx-value-keep="down"
-                      disabled={@confirmed?}
-                      style={keep_button_style(decision, :down)}
-                    >
-                      Hidden
-                    </button>
+                <%= if boss_revealed? do %>
+                  <div style="display: flex; flex-direction: column; gap: 8px; align-items: center; padding-top: 4px;">
+                    <div style="font-size: 10px; color: rgba(244,236,216,0.62); font-family: var(--sans); text-transform: uppercase; letter-spacing: 0.08em;">
+                      Revealed Boss: choose which stays face-up
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: flex-end;">
+                      <div style="display: flex; flex-direction: column; gap: 5px; align-items: center;">
+                        <.yokai_card suit={card.suit} rank={card.rank} width={44} />
+                        <button
+                          phx-click="set_swap_keep"
+                          phx-value-up={i}
+                          phx-value-keep="up"
+                          disabled={@confirmed?}
+                          style={keep_button_style(decision, :up)}
+                        >
+                          Keep Current
+                        </button>
+                      </div>
+                      <div style="display: flex; flex-direction: column; gap: 5px; align-items: center;">
+                        <.yokai_card suit={selected_down.suit} rank={selected_down.rank} width={44} />
+                        <button
+                          phx-click="set_swap_keep"
+                          phx-value-up={i}
+                          phx-value-keep="down"
+                          disabled={@confirmed?}
+                          style={keep_button_style(decision, :down)}
+                        >
+                          Keep Revealed
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 <% end %>
               </div>
