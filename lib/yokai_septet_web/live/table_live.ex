@@ -361,7 +361,7 @@ defmodule YokaiSeptetWeb.TableLive do
           <div style="display: flex; align-items: center; gap: 24px; font-family: var(--sans); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(244, 236, 216, 0.7);">
             <span>Round {@game.round}</span>
             <span style="width: 1px; height: 14px; background: rgba(244,236,216,0.2);"></span>
-            <span>Trick {trick_count(@game)} / {round_max_tricks(@game.num_p)}</span>
+            <span>Trick {trick_count(@game)}</span>
           </div>
 
           <.score_pill players={@game.players} scores={@game.scores} />
@@ -516,10 +516,6 @@ defmodule YokaiSeptetWeb.TableLive do
     plus_current = if g.trick == [], do: 0, else: 1
     sum + plus_current
   end
-
-  defp round_max_tricks(4), do: 12
-  defp round_max_tricks(3), do: 16
-  defp round_max_tricks(_), do: 13
 
   defp team_color(0), do: "var(--shu)"
   defp team_color(1), do: "var(--asagi)"
