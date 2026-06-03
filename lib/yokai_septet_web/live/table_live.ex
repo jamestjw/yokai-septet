@@ -462,11 +462,11 @@ defmodule YokaiSeptetWeb.TableLive do
       <% end %>
 
       <%= if @game.phase == :round_end do %>
-        <.round_summary game={@game} />
+        <.round_summary game={@game} h_idx={@h_idx} />
       <% end %>
 
       <%= if @game.phase == :game_end do %>
-        <.game_over game={@game} />
+        <.game_over game={@game} h_idx={@h_idx} />
       <% end %>
     </div>
     """
@@ -844,6 +844,7 @@ defmodule YokaiSeptetWeb.TableLive do
   end
 
   attr :game, :map, required: true
+  attr :h_idx, :integer, required: true
 
   defp round_summary(assigns) do
     g = assigns.game
@@ -886,9 +887,11 @@ defmodule YokaiSeptetWeb.TableLive do
       |> Enum.filter(fn {tid, _} -> tid in winner_teams end)
       |> Enum.flat_map(fn {_, t} -> t.names end)
 
+    human_player = Enum.at(g.players, assigns.h_idx)
+
     title =
       cond do
-        "You" in winner_names -> "勝利"
+        human_player.team in winner_teams -> "勝利"
         winner_names != [] -> "敗北"
         true -> "終了"
       end
@@ -1009,6 +1012,7 @@ defmodule YokaiSeptetWeb.TableLive do
   end
 
   attr :game, :map, required: true
+  attr :h_idx, :integer, required: true
 
   defp game_over(assigns) do
     g = assigns.game
@@ -1028,11 +1032,8 @@ defmodule YokaiSeptetWeb.TableLive do
       end)
       |> Enum.sort_by(fn {tid, _} -> tid end)
 
-    is_victory =
-      case Enum.find(teams, fn {tid, _} -> tid == winner_tid end) do
-        {_, names} -> "You" in names
-        _ -> false
-      end
+    human_player = Enum.at(g.players, assigns.h_idx)
+    is_victory = human_player.team == winner_tid
 
     winner_names =
       case Enum.find(teams, fn {tid, _} -> tid == winner_tid end) do
