@@ -239,7 +239,8 @@ defmodule YokaiSeptet.GameRoom do
     with :playing <- state.phase,
          %{mode: "2p", phase: :swapping} <- state.game,
          seat_idx when is_integer(seat_idx) <- find_seat_by_player(state.seats, player_id),
-         false <- setup_confirmed?(state.game, seat_idx) do
+         false <- setup_confirmed?(state.game, seat_idx),
+         true <- Game.valid_setup_discard?(state.game, seat_idx, card_id) do
       state =
         %{state | game: Game.set_setup_discard(state.game, seat_idx, card_id)} |> broadcast()
 

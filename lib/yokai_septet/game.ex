@@ -334,7 +334,17 @@ defmodule YokaiSeptet.Game do
 
   @doc "Set a player's pending discard card during 2p :swapping."
   def set_setup_discard(state, player_idx, card_id) do
-    %{state | setup_discards: Map.put(state.setup_discards, player_idx, card_id)}
+    if valid_setup_discard?(state, player_idx, card_id) do
+      %{state | setup_discards: Map.put(state.setup_discards, player_idx, card_id)}
+    else
+      state
+    end
+  end
+
+  def valid_setup_discard?(state, player_idx, card_id) do
+    state.hands
+    |> Enum.at(player_idx, [])
+    |> Enum.any?(&(&1.id == card_id and not &1.is_boss))
   end
 
   @doc "Choose which covered card a face-up Boss should swap with during 2p setup."

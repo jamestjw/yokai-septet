@@ -249,6 +249,30 @@ defmodule YokaiSeptet.GameTest do
     assert length(fu0) == 6
   end
 
+  test "2p setup cannot select a boss yokai discard" do
+    base = Game.new("2p")
+    boss_card = boss(:forest)
+    discard = non_boss(:earth, 2)
+
+    state = %{
+      base
+      | mode: "2p",
+        num_p: 2,
+        phase: :swapping,
+        trump_card: non_boss(:wind, 2),
+        trump_suit: :wind,
+        hands: [[boss_card, discard], [non_boss(:earth, 3)]],
+        straw: [empty_straw(), empty_straw()]
+    }
+
+    state = Game.set_setup_discard(state, 0, boss_card.id)
+    refute Map.has_key?(state.setup_discards, 0)
+    refute Game.valid_setup_discard?(state, 0, boss_card.id)
+
+    state = Game.set_setup_discard(state, 0, discard.id)
+    assert state.setup_discards[0] == discard.id
+  end
+
   test "2p greed redistribution includes face-down straw bosses" do
     # Construct a 2p state where player 0 hits 13 tricks with only 3 bosses,
     # and player 1 has the missing boss face-down inside their straw pile.

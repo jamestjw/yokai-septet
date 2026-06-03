@@ -1298,6 +1298,7 @@ defmodule YokaiSeptetWeb.TableLive do
     g = assigns.game
     confirmed? = Map.get(g.setup_confirmed, assigns.h_idx, false)
     discard_id = Map.get(g.setup_discards, assigns.h_idx)
+    discard_card = Enum.find(assigns.my_hand, &(&1.id == discard_id))
     swaps = Map.get(g.setup_swap_decisions, assigns.h_idx, %{})
     straw = Enum.at(g.straw, assigns.h_idx)
 
@@ -1311,7 +1312,7 @@ defmodule YokaiSeptetWeb.TableLive do
         up && down && up.is_boss && down.is_boss && is_nil(decision.keep)
       end)
 
-    can_confirm = discard_id != nil and not unresolved?
+    can_confirm = discard_card != nil and not discard_card.is_boss and not unresolved?
 
     waiting_for =
       g.players

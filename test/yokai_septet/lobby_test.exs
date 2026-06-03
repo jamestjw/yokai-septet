@@ -91,6 +91,40 @@ defmodule YokaiSeptet.LobbyTest do
     assert Enum.at(snap.seats, 0) == {:human, "host-id", "Host", :disconnected}
   end
 
+  test "2p multiplayer setup rejects boss yokai discards" do
+    {:ok, code} = Lobby.create_room("2p", "host-id", "Host")
+    cleanup_room(code)
+
+    assert {:ok, 1} = GameRoom.join(code, "guest-id", "Guest")
+    assert :ok = GameRoom.start_game(code, "host-id")
+    assert {:ok, room_pid} = Lobby.lookup(code)
+
+    boss_discard = boss(:forest)
+    valid_discard = non_boss(:earth, 2)
+
+    :sys.replace_state(room_pid, fn state ->
+      game = %{
+        state.game
+        | phase: :swapping,
+          hands: [[boss_discard, valid_discard], [non_boss(:earth, 3)]],
+          straw: [empty_straw(), empty_straw()],
+          setup_discards: %{},
+          setup_swap_decisions: %{},
+          setup_confirmed: %{}
+      }
+
+      %{state | game: game}
+    end)
+
+    assert {:error, :invalid} = GameRoom.set_discard(code, "host-id", boss_discard.id)
+    assert {:ok, snap} = GameRoom.snapshot(code)
+    refute Map.has_key?(snap.game.setup_discards, 0)
+
+    assert :ok = GameRoom.set_discard(code, "host-id", valid_discard.id)
+    assert {:ok, snap} = GameRoom.snapshot(code)
+    assert snap.game.setup_discards[0] == valid_discard.id
+  end
+
   test "2p multiplayer setup can hide a face-up boss in the straw pile" do
     {:ok, code} = Lobby.create_room("2p", "host-id", "Host")
     cleanup_room(code)
